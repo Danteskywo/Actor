@@ -35,7 +35,7 @@ class Specialty(Enum):
         return self.display_name
     
 
-class Actor(BaseModel):
+class SchemActor(BaseModel):
     id: Optional[int] = None
     first_name: str = Field(default=...,min_length=3, max_length=30, description="Имя актера")
     last_name: str = Field(default=..., min_length=3, max_length=30, description="Фамилия актера")
@@ -47,21 +47,21 @@ class Actor(BaseModel):
     oscar_wins: int = Field(default=0, ge=0, description="Количество побед на Оскаре")
     oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
     special_notes: Optional[str] = Field(None, description="Особые примечания")
-    specialty: Optional[List[int]] = Field(default=None, description="ID специализаций")
+    specialty: List[str] = Field(default=None, description="ID специализаций")
 
     @field_validator("phone_number")
     @classmethod
     def validate_phone_number(cls, v: str) -> str:
         phone_patten = r'^\+?[\d\s\-\(\)]{7,20}$'
         if not re.match(phone_patten, v):
-            raise ValidationError("Неправильный номер телефона (пример +9998887766)")
+            raise ValueError("Неправильный номер телефона (пример +9998887766)")
         return v
     
     @field_validator("date_of_birth")
     @classmethod
     def validate_date_of_birth(cls, v: date ) -> date:
         if v > date.today():
-            raise ValidationError ("Дата рождения не может быть в будущем")
+            raise ValueError ("Дата рождения не может быть в будущем")
         return v
     
     @field_validator("specialty")

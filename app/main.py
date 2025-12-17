@@ -3,6 +3,8 @@ from .utils import json_to_dict_list, dict_list_to_json
 import os
 from typing import Optional
 from fastapi.responses import JSONResponse
+from app.actors.models import SchemActor
+
 
 # Получаем путь к директории текущего скрипта
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -104,4 +106,11 @@ def get_all_actors_oscar_wins(
         filtered_actors = [student for student in filtered_actors if student['career_start'] == career_start]
     
     return filtered_actors
+
+@app.get("/actor")
+def get_actor_from_param_id(id: int) -> SchemActor:
+    actors = json_to_dict_list(path_to_json)
+    for actor in actors:
+        if actor["id"] == id:
+            return actor 
 
