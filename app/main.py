@@ -1,5 +1,5 @@
-from fastapi import FastAPI, HTTPException
-from utils import json_to_dict_list, dict_list_to_json
+from fastapi import FastAPI, HTTPException, Query
+from .utils import json_to_dict_list, dict_list_to_json
 import os
 from typing import Optional
 from fastapi.responses import JSONResponse
@@ -15,10 +15,41 @@ parent_dir = os.path.dirname(script_dir)
 
 path_to_json = os.path.join(parent_dir,'actors.json')
 
-app = FastAPI()
+app = FastAPI(title="База данных по Актерам!")
+
+def get_all_actors():
+    return json_to_dict_list(path_to_json)
+
+######### Поиск Актера по ID (параметра запроса!!!) ########
+
+@app.get("/actors/search/")
+def get_actor_query(actor_id: int = Query(...,gt=0, description="ID Актера")):
+    actors = json_to_dict_list(path_to_json)
+
+    for actor in actors:
+        if actor.get("id") == actor_id:
+            return actor
+    raise HTTPException(
+        status_code=404,
+        detail=f"Актер с таким ID {actor_id} не нфайден"
+        )
+######### Поиск Актера по ID (параметра ПУТИ!!!) ########
+
+@app.get("/actors/id/{actor_id}")
+def grt_actor_path(actor_id:int):
+    actors = json_to_dict_list(path_to_json)
+    for actor in actors:
+        if actor.get("id") == actor_id:
+            return actor
+    raise HTTPException(
+        status_code=404,
+        detail=f"Актер с таким ID {actor_id} не нфайден"
+    )
+
+
 
 @app.get("/actors")
-def get_all_students(oscar_wins: Optional[int] = None):
+def get_all_actors_route(oscar_wins: Optional[int] = None):
     actors = json_to_dict_list(path_to_json)
 
     if oscar_wins is None:
@@ -52,9 +83,11 @@ def get_all_oscar_wins(oscar_wins: int):
         )
     return {
         "oscar_wins": oscar_wins,
+        "count":len(return_list),
+        "actors":return_list
     }
 
-@app.get("/actors/{oscar_wins}")
+@app.get("/actors/filter/oscar/{oscar_wins}")
 def get_all_actors_oscar_wins(
     oscar_wins: int,
     oscar_nominations: Optional[int] = None,
@@ -71,3 +104,4 @@ def get_all_actors_oscar_wins(
         filtered_actors = [student for student in filtered_actors if student['career_start'] == career_start]
     
     return filtered_actors
+
