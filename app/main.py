@@ -1,9 +1,14 @@
 from fastapi import FastAPI, HTTPException, Query
 from .utils import json_to_dict_list, dict_list_to_json
 import os
-from typing import Optional
+import models
+from typing import Optional, List, Dict, Any
 from fastapi.responses import JSONResponse
 from app.actors.models import SchemActor
+
+
+# Создаёт все таблицы, определённые в моделях, если они ещё не существуют
+models.Base.metadata.create_all(bind=engine)
 
 
 # Получаем путь к директории текущего скрипта
@@ -94,17 +99,16 @@ def get_all_actors_oscar_wins(
     oscar_wins: int,
     oscar_nominations: Optional[int] = None,
     career_start: Optional[int] = None
-    ):
+    ) -> List[Dict[str, Any]]:
     actors = json_to_dict_list(path_to_json)
     filtered_actors = []
     for actor in actors:
         if actor["oscar_wins"] == oscar_wins:
             filtered_actors.append(actor)
     if oscar_nominations:
-        filtered_actors = [student for student in filtered_actors if student["oscar_nominations"] == oscar_nominations]
+            filtered_actors = [actor for actor in filtered_actors if actor["oscar_nominations"] == oscar_nominations]
     if career_start:
-        filtered_actors = [student for student in filtered_actors if student['career_start'] == career_start]
-    
+            filtered_actors = [actor for actor in filtered_actors if actor['career_start'] == career_start]
     return filtered_actors
 
 @app.get("/actor")

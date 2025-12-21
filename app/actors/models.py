@@ -1,7 +1,8 @@
 from enum import Enum, StrEnum, IntEnum
 from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
 from datetime import date, datetime
-from typing import Optional, List 
+from typing import Optional, List
+from database import Base 
 import re
 
 
