@@ -4,7 +4,7 @@ import os
 import models
 from typing import Optional, List, Dict, Any
 from fastapi.responses import JSONResponse
-from app.actors.models import SchemActor
+from Actor.app.actors.scheme import SchemActor
 
 
 # Создаёт все таблицы, определённые в моделях, если они ещё не существуют

@@ -1,20 +1,27 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-import os
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
+from app.config import get_db_url
+from datetime import datetime
+from typing import Annotated
+from sqlalchemy import func
 
-# Формат строки подключения: postgresql://<пользователь>:<пароль>@<адрес_сервера>/<имя_базы_данных>
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:77777@localhost:5433/ActorBD"
-# Создаем движок (engine)
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-# Создаем фабрику сессий для работы с базой
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# Базовый класс для объявления ваших моделей (таблиц БД)
-Base = declarative_base()
 
-# Функция для получения сессии БД в маршрутах FastAPI
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+DATABASE_URL = get_db_url()
+engine = create_async_engine(DATABASE_URL)
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
+
+int_pk = Annotated[int, mapped_column(primary_key=True)]
+created_at = Annotated[datetime, mapped_column(server_default=func.now())]
+updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)]
+str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
+str_null_true = Annotated[str, mapped_column(nullable=True)]
+
+
+class Base(AsyncAttrs, DeclarativeBase):
+    __abstract__ = True
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        return f"{cls.__name__.lower()}s"
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
