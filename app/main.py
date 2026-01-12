@@ -1,120 +1,253 @@
-from fastapi import FastAPI, HTTPException, Query
-from .utils import json_to_dict_list, dict_list_to_json
-import os
-import models
-from typing import Optional, List, Dict, Any
-from fastapi.responses import JSONResponse
-from Actor.app.actors.scheme import SchemActor
+from fastapi import FastAPI, HTTPException, Query, Depends 
+
+# Паттерн - это типовое, проверенное временем решение часто возникающей 
+# проблемы проектирования программного обеспечения. Это не готовая реализация, 
+# а шаблон (рецепт), который можно адаптировать под конкретную задачу.
+
+# FastAPI - класс конструктор, представляющий ядро веб-фреймворка. 
+# Это точка входа для создания экземпляра приложения, который 
+# регистрирует маршруты, middleware, обработчиков исключений и
+# предоставляет ASGI(Асинхронный Интерфейс Шлюза Сервера)-
+# совместимый интерфейс для запуска сервера.
+# Примером из жизни может служить главный офис компании.
+# Допустим вы начинаете строительство бизнеса с создания офиса
+# ( app = FastAPI() ), куда будут приходить запросы(клиенты/письма),
+# распределяться по отделам (маршрутам) и формироваться ответы.
+
+# HTTPException - класс-исключение для явного возврата HTTP-ответов с 
+# ненулевым(нулевыми считаются статус коды 2хх, то успешные статус коды 
+# считаются нулевыми. 1хх считаются информационными, 3хх считаются 
+# перенаправления в особых случаях, 4хх это статус коды ошибок клиента, 
+# 5хх - это статус коды серьезных ошибок сервера) статус-кодом и 
+# деталями ошибки в структурированном виде. Наследуется от Exception.
+# Примером из жизни можно привести официальный письменные отказ от 
+# банка на выдачу кредита. Вместо того чтобы просто не ответить, 
+# банк отправляет документ с кодом отказа(статус 400), заголовком 
+# "Недостаточно данных" и описанием "Не предоставлена справка о доходах".
+
+# Query - класс-зависимость (на англ. Dependency переводится как зависимость),
+# используемый для извлечения, валидации и документирования параметров строки 
+# запроса (query parameters) из URL. Преобразует строковые данные запроса в 
+# типизированные значения Python.
+# Примером из жини может служить интернет-магазин, когда на сайте магазина 
+# выбираете "цена: до 10000", "бренд: Apple", "цвет: черный" - это параметры 
+# запроса ?max_price=10000&brand=Apple&color=black .
+# Query помогает извлечь и проверить эти параметры.
+
+# Depends - функция/класс для декларативного(желаемый результат) указания 
+# зависимостей в FastAPI. Внедряет (инжектирует) результаты выполнения 
+# зависимых функций в обработчики маршрутов. Основана на системе внедрения 
+# зависимостей (Dependency Injection).
+# Примером из жизни можно привести процесс заказа в ресторане. Чтобы подать 
+# блюдо(обработать запрос), официанту (обработчику маршрута) нужны: 
+# 1) чистый пол (clean_table то есть чистая таблица), 
+# 2) готовое блюдо ( prepare_food то есть подготовленная пища), 3) приборы 
+# ( get_cultery то есть получить столовые приборы). Depends гарантирует, 
+# что эти зависимости будут выполнены перед подачей блюда. 
+# Если стол грязный - его сначала моют.
+
+# AsyncSession - класс-фасад( это взаимодействие между пользователем и 
+# сложной внутренней системой ) для асинхронного взаимодействия с базой данных.
+# Представляет сессию - область взаимодействия (unit of work), которая 
+# отслеживает изменения объектов, формирует и выполняет SQL-запросы асинхронно, 
+# управляет транзакциями. Является асинхронным аналогом классической Session.
+# Примером из жизни может служить сотрудник большого склада. Вы даете ему 
+# задание(асинхронный запрос): "Принеси товар ID 777". Он уходит на склад (БД),
+# и пока он ищет, вы можете заниматься другими делами(обрабатывать другие запросы). 
+# Он вернется с результатом (или ошибкой), когда выполнит задание.
+
+# engine - объект-фабрика(производит соединения, скрывая сложность создания) 
+# пулов(пул - кэш готовых соеднинений для эффективного повторного использования) 
+# соединений (с англ. connection pool) и диалекта SQL. Инкапсулирует информацию 
+# о подключении к БД (URL, драйвер, настройки), управляет жизненным циклом соединений.
+# В асинхронном режиме использует адаптер( это асинхроновые драйвера баз данных для 
+# Python, это библиотека, которая обеспечивает связь между приложением на Python и 
+# СУБД. Он переводит команды Python в язык, понятный БД. ) asyncpg или aiomysql.
+# Примером из жизни может служить центральный офис логистики (диспетчерская такси). 
+# У него есть: 
+# База данных водителей (пул соединений).
+# Знание правил дорог конкретного города (диалект SQL для PostgreSQL/MySQL).
+# При поступлении заказа (запроса к БД) диспетчерская находит свободного 
+# водителя (соединение) и направляет его на вызов.
+
+# Base - декларативный базовый класс (declarative base). Это метакласс(класс для классов), 
+# который связывает Python-классы с таблицами базы данных, создавая модели (ORM-модели 
+# они переводят пайтон объекты в таблицу БД, либо так же но наоборот). Хранит 
+# метаданные о всех таблицах ( Base.metadata ).
+# Пример из жизни - это архитектурный шаблон (ГОСТ) для чертежей зданий. Все архитекторы 
+# в компании используют единый стандартный бланк (Base), чтобы создавать чертежи квартир 
+# (Actor). Это гарантирует, что все чертежи совместимы и из них 
+# можно собрать общий план дома (Base.metadata).
+
+# 
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
+from contextlib import asynccontextmanager
+import asyncio
+
+from app.database import engine, get_async_session, Base
+from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
+from app.actors.crud import actor_crud, special_crud
+
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
-# Создаёт все таблицы, определённые в моделях, если они ещё не существуют
-models.Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_tables()
+    print("База данных успешно создана, Повелитель!")
+    yield
+    print("Приложение останавливается...")
 
-
-# Получаем путь к директории текущего скрипта
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-#Переходим на уровень выше 
-
-parent_dir = os.path.dirname(script_dir)
-
-#Получаем путь к JSON 
-
-path_to_json = os.path.join(parent_dir,'actors.json')
-
-app = FastAPI(title="База данных по Актерам!")
-
-def get_all_actors():
-    return json_to_dict_list(path_to_json)
-
-######### Поиск Актера по ID (параметра запроса!!!) ########
-
-@app.get("/actors/search/")
-def get_actor_query(actor_id: int = Query(...,gt=0, description="ID Актера")):
-    actors = json_to_dict_list(path_to_json)
-
-    for actor in actors:
-        if actor.get("id") == actor_id:
-            return actor
-    raise HTTPException(
-        status_code=404,
-        detail=f"Актер с таким ID {actor_id} не нфайден"
-        )
-######### Поиск Актера по ID (параметра ПУТИ!!!) ########
-
-@app.get("/actors/id/{actor_id}")
-def grt_actor_path(actor_id:int):
-    actors = json_to_dict_list(path_to_json)
-    for actor in actors:
-        if actor.get("id") == actor_id:
-            return actor
-    raise HTTPException(
-        status_code=404,
-        detail=f"Актер с таким ID {actor_id} не нфайден"
-    )
-
-
-
-@app.get("/actors")
-def get_all_actors_route(oscar_wins: Optional[int] = None):
-    actors = json_to_dict_list(path_to_json)
-
-    if oscar_wins is None:
-        return actors
-    else:
-        return_list = []
-
-        for actor in actors:
-            if actor.get("oscar_wins") == oscar_wins:
-                return_list.append(actor)
-        return return_list
+app = FastAPI()
 
 @app.get("/")
-def home_page():
-    message = {"message":"Привет создатель!"}
-    return JSONResponse (content=message)
-
-
-@app.get("/actors/oscar/{oscar_wins}")
-def get_all_oscar_wins(oscar_wins: int):
-    actors = json_to_dict_list(path_to_json)
-    return_list = []
-
-    for actor in actors:
-        if actor["oscar_wins"] == oscar_wins:
-            return_list.append(actor)
-    if not return_list:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Данное количество оскаровб не найдено {oscar_wins}"
-        )
-    return {
-        "oscar_wins": oscar_wins,
-        "count":len(return_list),
-        "actors":return_list
+async def home():
+    return{
+        "message":"Главная страница!"
     }
+@app.post("/actors/", response_model=ActorResponse)
+async def create_actor(
+    actor_data:ActorCreate,
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        actor = await actor_crud.create(session, actor_data)
+        return actor
+    except Exception as e: 
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/actors/", response_model=List[ActorResponse])
+async def get_all_actors(
+    oscar_wins: Optional[int] = Query(None, description="Фильтр по количеству оскаров"),
+    session: AsyncSession = Depends(get_async_session)
+):
+    actors = await actor_crud.get_all(session)
 
-@app.get("/actors/filter/oscar/{oscar_wins}")
-def get_all_actors_oscar_wins(
-    oscar_wins: int,
-    oscar_nominations: Optional[int] = None,
-    career_start: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-    actors = json_to_dict_list(path_to_json)
+    if oscar_wins is not None:
+        actors = [actor for actor in actors if actor.oscar_wins == oscar_wins]
+    return actors
+
+@app.get("/actors/{actor_id}", response_model=ActorResponse)
+async def get_actor_by_id(
+    actor_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    actor = await actor_crud.get_by_id(session, actor_id)
+    if not actor: 
+        raise HTTPException(status_code=404, detail=f"Ошибка!{actor_id}Такой ID не найден")
+    return actor
+
+@app.put("/actors/{actor_id}", response_model=ActorResponse)
+async def update_actor(
+    actor_id:int,
+    actor_data: ActorUpdate,
+    session: AsyncSession = Depends(get_async_session)
+):
+    actor = await actor_crud.update(session, actor_id, actor_data)
+    if not actor:
+        raise HTTPException(status_code=404, detail=f"Ошибка!{actor_id}Такой ID не найден в обновлении!")
+    return actor
+
+@app.delete("/actors/{actor_id}")
+async def delete_actor(
+    actor_id:int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    success = await actor_crud.delete(session, actor_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Актер с таким ID {actor_id} не найден!")
+    return {"message":f"Актер с ID{actor_id} успешно удален!"}
+
+@app.get("/actors/search/")
+async def search_actors(
+    name: str = Query(default=..., description="Поиск Актера по имени и фамилии"),
+    session: AsyncSession = Depends(get_async_session)
+):
+    actors = await actor_crud.search(session, name)
+    return actors
+
+@app.get("/actors/filter/oscar/")
+async def filter_actors_by_oscar(
+    oscar_wins: int = Query(..., ge=0, description="Количество оскаров"),
+    oscar_nominations: Optional[int] = Query(None, ge=0, description="Количество номинаций"),
+    session: AsyncSession = Depends(get_async_session)
+):
+    actors = await actor_crud.get_all(session)
+
     filtered_actors = []
     for actor in actors:
-        if actor["oscar_wins"] == oscar_wins:
-            filtered_actors.append(actor)
-    if oscar_nominations:
-            filtered_actors = [actor for actor in filtered_actors if actor["oscar_nominations"] == oscar_nominations]
-    if career_start:
-            filtered_actors = [actor for actor in filtered_actors if actor['career_start'] == career_start]
+        if actor.oscar_wins == oscar_wins:
+            if oscar_nominations is None or actor.oscar_nominations == oscar_nominations:
+                filtered_actors.append(actor)
     return filtered_actors
 
-@app.get("/actor")
-def get_actor_from_param_id(id: int) -> SchemActor:
-    actors = json_to_dict_list(path_to_json)
+@app.get("/actors/oscar/{oscar_wins}")
+async def get_actors_by_oscar_wins(
+    oscar_wins: int,
+    session: AsyncSession = Depends(get_async_session)
+    ):
+    actors = await actor_crud.get_all(session)
+
+    result_list = []
     for actor in actors:
-        if actor["id"] == id:
-            return actor 
+        if actor.oscar_wins == oscar_wins:
+            result_list.append(actor)
+
+    if not result_list:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Актер с таким количеством не найден {oscar_wins}"
+        )
+    return {
+        "oscar_wins":oscar_wins,
+        "count": len(result_list),
+        "actors": result_list
+    }
+
+@app.get("/actor")
+async def get_actor_by_query(
+    id: int = Query(..., description="ID актера"),
+    session: AsyncSession = Depends(get_async_session)
+):
+    actor = await actor_crud.get_by_id(session, id)
+    if not actor:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Актер с ID {id} не найден"
+        )
+    return actor
+
+@app.get("/actors/id/{actors_id}")
+async def get_actor_by_path(
+    actor_id: int,
+    session: AsyncSession = Depends(get_async_session) 
+
+):
+    actor = await actor_crud.get_by_id(session, actor_id)
+    if not actor:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Актер с таким ID {actor_id} не найден"
+        )
+    return actor
+
+
+########################--Specials--###########
+
+@app.post("/specials/", response_model=SpecialResponse)
+async def create_cpecial(
+    special_data: SpecialCreate,
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        special = await special_crud.create(session, special_data)
+        return special
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    
 

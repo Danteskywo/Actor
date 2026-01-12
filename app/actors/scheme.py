@@ -1,15 +1,14 @@
 from enum import Enum, StrEnum, IntEnum
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError
+from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError, ConfigDict
 from datetime import date, datetime
 from typing import Optional, List
-from database import Base 
 import re
-from sqlalchemy import ForeignKey, text, Text
-from sqlalchemy.orm import relationship, Mapped, mapped_column
-from app.database import Base, str_uniq, int_pk, str_null_true
+# from sqlalchemy import ForeignKey, text, Text
+# from sqlalchemy.orm import relationship, Mapped, mapped_column
+# from app.database import Base, str_uniq, int_pk, str_null_true
 
 
-class Specialty(Enum):
+class SpecialtyEnum(Enum):
     WAR_DRAMAS = (1, "Военная драма")
     SOCIAL_DRAMAS = (2, "Социальная драма")
     THRILLERS = (3, "Триллеры")
@@ -39,8 +38,7 @@ class Specialty(Enum):
         return self.display_name
     
 
-class SchemActor(BaseModel):
-    id: Optional[int] = None
+class ActorBase(BaseModel):
     first_name: str = Field(default=...,min_length=3, max_length=30, description="Имя актера")
     last_name: str = Field(default=..., min_length=3, max_length=30, description="Фамилия актера")
     date_of_birth: date = Field(default=..., description="Дата рождения актера в формате ГГГГ.ММ.ДД")
@@ -51,7 +49,7 @@ class SchemActor(BaseModel):
     oscar_wins: int = Field(default=0, ge=0, description="Количество побед на Оскаре")
     oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
     special_notes: Optional[str] = Field(None, description="Особые примечания")
-    specialty: List[str] = Field(default=None, description="ID специализаций")
+    specialty: List[int] = Field(default_factory=list, description="ID специализаций")
 
     @field_validator("phone_number")
     @classmethod
@@ -72,12 +70,56 @@ class SchemActor(BaseModel):
     @classmethod
     def validate_specialty(cls, v: Optional[List[int]]) -> Optional[List[int]]:
         if v is not None:
-            valid_ids = [spec.id for spec in Specialty]
+            valid_ids = [spec.id for spec in SpecialtyEnum]
             for spec_id in v : 
                 if spec_id not in valid_ids:
                     raise ValueError(f"ID специальности {spec_id} не существует!")
         return v 
     
             
-        
+#CRUD 
+
+class ActorCreate(ActorBase):
+    pass 
+
+class ActorUpdate(BaseModel):
+    first_name: str = Field(default=...,min_length=3, max_length=30, description="Имя актера")
+    last_name: str = Field(default=..., min_length=3, max_length=30, description="Фамилия актера")
+    date_of_birth: date = Field(default=..., description="Дата рождения актера в формате ГГГГ.ММ.ДД")
+    email: EmailStr = Field (default=..., description="Электронная почта студента")
+    phone_number: str = Field (default=..., description="Номер телефона")
+    address: str = Field (default=..., description="Адрес")
+    career_start: int = Field (default = ..., ge=1900, le=2025, description="Год начала карьеры")
+    oscar_wins: int = Field(default=0, ge=0, description="Количество побед на Оскаре")
+    oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
+    special_notes: Optional[str] = Field(None, description="Особые примечания")
+    specialty: Optional [List[int]] = Field(default=None, description="ID специализаций")
+
+class ActorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id:int
+    first_name: str
+    last_name: str
+    date_of_birth: date
+    email: EmailStr 
+    phone_number: str
+    address: str
+    career_start: int
+    oscar_wins: int  
+    oscar_nominations: int 
+    special_notes: Optional[str] = None
+    specialty: List[int]
     
+class SpecialBase(BaseModel):
+    special_name: str
+    special_description: Optional[str] = None
+
+class SpecialCreate(SpecialBase):
+    pass
+
+class SpecialResponse(SpecialBase):
+    model_config = ConfigDict(from_attributes=True)
+    id:int
+
+
+        
