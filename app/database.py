@@ -23,7 +23,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     created_at: Mapped[created_at]
     updated_at: Mapped[updated_at]
 
-DATABASE_URL = "postgresql+asyncpg://ilya:77777@localhost:5433/actorDB"
+DATABASE_URL = "postgresql+asyncpg://ilya:77777@localhost:5433/ActorBD"
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
