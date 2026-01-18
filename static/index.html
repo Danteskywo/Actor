@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>База актеров</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>База данных актеров</h1>
+        
+        <div class="nav">
+            <a href="/">Главная</a>
+            <a href="/actors.html">Все актеры</a>
+            <a href="/create.html">Добавить актера</a>
+            <a href="/docs" target="_blank">API Docs</a>
+        </div>
+        
+        <div class="content">
+            <h2>Добро пожаловать!</h2>
+            <p>Простая система управления актерами.</p>
+            
+            <div class="actions">
+                <button onclick="location.href='/actors.html'">
+                     Показать всех актеров
+                </button>
+                <button onclick="location.href='/create.html'">
+                    Добавить нового актера
+                </button>
+            </div>
+            
+            <div class="info">
+                <h3>API эндпоинты/таков путь.....:</h3>
+                <ul>
+                    <li><code>GET /actors/</code> - Все актеры</li>
+                    <li><code>POST /actors/</code> - Создать актера</li>
+                    <li><code>GET /actors/{id}</code> - Получить актера по ID</li>
+                    <li><code>DELETE /actors/{id}</code> - Удалить актера</li>
+                    <li><code>GET /specials/</code> - Все специализации</li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Actor Database &copy; 2024</p>
+        </footer>
+    </div>
+</body>
+</html>

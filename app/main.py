@@ -81,18 +81,24 @@ from fastapi import FastAPI, HTTPException, Query, Depends
 
 # 
 
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from contextlib import asynccontextmanager
 import asyncio
 
+from app.actors.models import Actor, Special
 from app.database import engine, get_async_session, Base
 from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
 from app.actors.crud import actor_crud, special_crud
 
+from fastapi.staticfiles import StaticFiles
+
+
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    print("Таблицы созданы!")
 
 
 @asynccontextmanager
@@ -102,7 +108,14 @@ async def lifespan(app: FastAPI):
     yield
     print("Приложение останавливается...")
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+
+@app.get("/api")
+async def home():
+    return {"message": "API запущенно"}
+
 
 @app.get("/")
 async def home():
@@ -237,6 +250,12 @@ async def get_actor_by_path(
 
 
 ########################--Specials--###########
+
+
+@app.get("/specials/", response_model=SpecialResponse)
+async def get_all_specials(session: AsyncSession = Depends(get_async_session)):
+    specials = await special_crud.get_all(session)
+    return specials
 
 @app.post("/specials/", response_model=SpecialResponse)
 async def create_cpecial(

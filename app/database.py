@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase, declared_attr, Mapped, mapped_column
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 from sqlalchemy import func
 import os
 
@@ -27,6 +27,14 @@ DATABASE_URL = "postgresql+asyncpg://ilya:77777@localhost:5433/ActorBD"
 engine = create_async_engine(DATABASE_URL)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
-async def get_async_session() -> AsyncSession:
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+

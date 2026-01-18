@@ -90,10 +90,10 @@ class ActorUpdate(BaseModel):
     phone_number: str = Field (default=..., description="Номер телефона")
     address: str = Field (default=..., description="Адрес")
     career_start: int = Field (default = ..., ge=1900, le=2025, description="Год начала карьеры")
-    oscar_wins: int = Field(default=0, ge=0, description="Количество побед на Оскаре")
+    oscar_wins: int = Field(default=None, ge=0, description="Количество побед на Оскаре")
     oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
     special_notes: Optional[str] = Field(None, description="Особые примечания")
-    specialty: Optional [List[int]] = Field(default=None, description="ID специализаций")
+    specialty: Optional[List[int]] = Field(default=None, description="ID специализаций")
 
 class ActorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

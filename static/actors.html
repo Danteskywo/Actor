@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Все актеры</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Все актеры</h1>
+        
+        <div class="nav">
+            <a href="/">Главная</a>
+            <a href="/actors.html" style="color: #4CAF50;">Все актеры</a>
+            <a href="/create.html">Добавить актера</a>
+            <a href="/docs" target="_blank">API Docs</a>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="search" placeholder="Поиск по имени..." onkeyup="searchActors()">
+            <button onclick="loadActors()">🔄 Обновить</button>
+        </div>
+        
+        <div id="loading">Загрузка...</div>
+        
+        <div id="actors-list"></div>
+        
+        <div id="no-actors" style="display:none;">
+            <p>Нет актеров в базе.</p>
+            <button onclick="location.href='/create.html'">➕ Добавить первого актера</button>
+        </div>
+        
+        <footer>
+            <p><a href="/">← На главную</a></p>
+        </footer>
+    </div>
+    
+    <script>
+        async function loadActors() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('actors-list').innerHTML = '';
+            
+            try {
+                const response = await fetch('/actors/');
+                const actors = await response.json();
+                
+                if (actors.length === 0) {
+                    document.getElementById('no-actors').style.display = 'block';
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+                
+                let html = '<table>';
+                html += '<tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Дата рождения</th><th>Оскары</th><th>Действия</th></tr>';
+                
+                for (const actor of actors) {
+                    html += `
+                    <tr>
+                        <td>${actor.id}</td>
+                        <td>${actor.first_name}</td>
+                        <td>${actor.last_name}</td>
+                        <td>${actor.date_of_birth}</td>
+                        <td>🏆 ${actor.oscar_wins}</td>
+                        <td>
+                            <button onclick="deleteActor(${actor.id})" class="delete-btn">Удалить</button>
+                        </td>
+                    </tr>
+                    `;
+                }
+                
+                html += '</table>';
+                document.getElementById('actors-list').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('actors-list').innerHTML = 
+                    '<p style="color: red;">Ошибка загрузки: ' + error.message + '</p>';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        async function deleteActor(id) {
+            if (!confirm('Удалить актера?')) return;
+            
+            try {
+                const response = await fetch(`/actors/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Актер удален!');
+                    loadActors();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        function searchActors() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('#actors-list tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll('td');
+                const name = cells[1].textContent.toLowerCase() + ' ' + cells[2].textContent.toLowerCase();
+                rows[i].style.display = name.includes(search) ? '' : 'none';
+            }
+        }
+        
+        // Загружаем актеров при открытии страницы
+        window.onload = loadActors;
+    </script>
+</body>
+</html>
