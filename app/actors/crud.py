@@ -1,35 +1,41 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from .models import Actor, Special
-from .scheme import ActorCreate, ActorUpdate
+from .scheme import ActorCreate, ActorUpdate, ActorResponse
 
 
 class ActorCRUD:
     async def create(self, session: AsyncSession, actor_in: ActorCreate) -> Actor:
+        # Создаем актера без специализаций
         actor_dict = actor_in.model_dump(exclude={"specialty"})
         actor = Actor(**actor_dict)
+        session.add(actor)
         
+        # Обязательно flush, чтобы получить ID актера
+        await session.flush()
+        
+        # Добавляем специализации, если есть
         if actor_in.specialty:
-            query = select(Special).where(Special.id.in_(actor_in.specialty))
-            result = await session.execute(query)
+            stmt = select(Special).where(Special.id.in_(actor_in.specialty))
+            result = await session.execute(stmt)
             specialties = result.scalars().all()
             actor.specialties.extend(specialties)
         
-        session.add(actor)
         await session.commit()
-        await session.refresh(actor)
+        await session.refresh(actor, ["specialties"])  # Явно загружаем связи
         return actor
     
     async def get_all(self, session: AsyncSession) -> List[Actor]:
-        query = select(Actor)
-        result = await session.execute(query)
+        stmt = select(Actor).options(selectinload(Actor.specialties))
+        result = await session.execute(stmt)
         return result.scalars().all()
     
     async def get_by_id(self, session: AsyncSession, actor_id: int) -> Optional[Actor]:
-        query = select(Actor).where(Actor.id == actor_id)
-        result = await session.execute(query)
+        stmt = select(Actor).where(Actor.id == actor_id).options(selectinload(Actor.specialties))
+        result = await session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def update(self, session: AsyncSession, actor_id: int, actor_in: ActorUpdate) -> Optional[Actor]:
@@ -37,21 +43,23 @@ class ActorCRUD:
         if not actor:
             return None
         
-        update_dict = actor_in.model_dump(exclude_unset=True, exclude={"specialty"})
-        for key, value in update_dict.items():
+        # Обновляем базовые поля
+        update_data = actor_in.model_dump(exclude_unset=True, exclude={"specialty"})
+        for key, value in update_data.items():
             if value is not None:
                 setattr(actor, key, value)
         
+        # Обновляем специализации если указаны
         if actor_in.specialty is not None:
             actor.specialties.clear()
             if actor_in.specialty:
-                query = select(Special).where(Special.id.in_(actor_in.specialty))
-                result = await session.execute(query)
+                stmt = select(Special).where(Special.id.in_(actor_in.specialty))
+                result = await session.execute(stmt)
                 specialties = result.scalars().all()
                 actor.specialties.extend(specialties)
         
         await session.commit()
-        await session.refresh(actor)
+        await session.refresh(actor, ["specialties"])
         return actor
     
     async def delete(self, session: AsyncSession, actor_id: int) -> bool:
@@ -64,12 +72,13 @@ class ActorCRUD:
         return True
     
     async def search(self, session: AsyncSession, name: str) -> List[Actor]:
-        query = select(Actor).where(
+        stmt = select(Actor).where(
             (Actor.first_name.ilike(f"%{name}%")) |
             (Actor.last_name.ilike(f"%{name}%"))
-        )
-        result = await session.execute(query)
+        ).options(selectinload(Actor.specialties))
+        result = await session.execute(stmt)
         return result.scalars().all()
+
 
 class SpecialCRUD:
     async def create(self, session: AsyncSession, special_in) -> Special:
@@ -80,13 +89,13 @@ class SpecialCRUD:
         return special
     
     async def get_all(self, session: AsyncSession) -> List[Special]:
-        query = select(Special)
-        result = await session.execute(query)
+        stmt = select(Special)
+        result = await session.execute(stmt)
         return result.scalars().all()
     
     async def get_by_id(self, session: AsyncSession, special_id: int) -> Optional[Special]:
-        query = select(Special).where(Special.id == special_id)
-        result = await session.execute(query)
+        stmt = select(Special).where(Special.id == special_id)
+        result = await session.execute(stmt)
         return result.scalar_one_or_none()
     
     async def delete(self, session: AsyncSession, special_id: int) -> bool:

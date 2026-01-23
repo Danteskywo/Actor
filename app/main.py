@@ -86,6 +86,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from contextlib import asynccontextmanager
 import asyncio
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.actors.models import Actor, Special
 from app.database import engine, get_async_session, Base
@@ -109,7 +110,16 @@ async def lifespan(app: FastAPI):
     print("Приложение останавливается...")
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 @app.get("/api")
@@ -117,12 +127,12 @@ async def home():
     return {"message": "API запущенно"}
 
 
-@app.get("/")
-async def home():
-    return{
-        "message":"Главная страница!"
-    }
-@app.post("/actors/", response_model=ActorResponse)
+@app.options("/actors/")
+async def options_actors():
+    return {}
+
+
+@app.post("/post/actors/", response_model=ActorResponse)
 async def create_actor(
     actor_data:ActorCreate,
     session: AsyncSession = Depends(get_async_session)
@@ -132,7 +142,8 @@ async def create_actor(
         return actor
     except Exception as e: 
         raise HTTPException(status_code=400, detail=str(e))
-    
+
+
 @app.get("/actors/", response_model=List[ActorResponse])
 async def get_all_actors(
     oscar_wins: Optional[int] = Query(None, description="Фильтр по количеству оскаров"),
@@ -269,4 +280,5 @@ async def create_cpecial(
         raise HTTPException(status_code=400, detail=str(e))
 
     
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
