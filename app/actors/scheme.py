@@ -7,7 +7,7 @@ import re
 # from sqlalchemy.orm import relationship, Mapped, mapped_column
 # from app.database import Base, str_uniq, int_pk, str_null_true
 
-
+# Enum = перечисление. Наследование от класса. 
 class SpecialtyEnum(Enum):
     WAR_DRAMAS = (1, "Военная драма")
     SOCIAL_DRAMAS = (2, "Социальная драма")

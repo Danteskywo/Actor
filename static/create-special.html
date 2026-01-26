@@ -72,82 +72,15 @@
                 
                 <div class="form-actions">
                     <button type="submit"> Сохранить</button>
-                    <button type="button" onclick="location.href='/actors-page.html'">Отмена</button>
+                    <button type="button" onclick="location.href='/actors-page.html'"> Отмена</button>
                 </div>
             </form>
         </div>
         
         <footer>
-            <p><a href="/actors-page.html">← Назад к списку</a></p>
+            <p><a href="/special-page.html">← Назад к списку</a></p>
         </footer>
     </div>
     
-    <script>
-        document.getElementById('actor-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const actorData = {
-        first_name: document.getElementById('first_name').value,
-        last_name: document.getElementById('last_name').value,
-        date_of_birth: document.getElementById('date_of_birth').value,
-        email: document.getElementById('email').value,
-        phone_number: document.getElementById('phone_number').value,
-        address: document.getElementById('address').value,
-        career_start: parseInt(document.getElementById('career_start').value),
-        oscar_wins: parseInt(document.getElementById('oscar_wins').value) || 0,
-        oscar_nominations: parseInt(document.getElementById('oscar_nominations').value) || 0,
-        special_notes: document.getElementById('special_notes').value,
-        specialty: []
-    };
-    
-    console.log(" Отправляемые данные:", actorData);
-    
-    try {
-        const response = await fetch('/post/actors/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(actorData)
-        });
-        
-        console.log(" Статус ответа:", response.status, response.statusText);
-        
-        // Всегда пытаемся прочитать как текст
-        const responseText = await response.text();
-        console.log(" Сырой ответ:", responseText);
-        
-        if (!response.ok) {
-            let errorDetail = response.statusText;
-            
-            // Пытаемся распарсить JSON ошибки
-            try {
-                const errorJson = JSON.parse(responseText);
-                errorDetail = errorJson.detail || errorJson.message || responseText;
-            } catch {
-                // Если не JSON, используем текст
-                errorDetail = responseText || response.statusText;
-            }
-            
-            alert(` Ошибка ${response.status}: ${errorDetail}`);
-            return;
-        }
-        
-        // Успех
-        try {
-            const result = JSON.parse(responseText);
-            console.log(" Успешный ответ:", result);
-            alert(' Актер успешно добавлен!');
-            location.href = '/actors-page.html';
-        } catch {
-            alert(' Актер добавлен, но получен неожиданный ответ');
-        }
-        
-    } catch (error) {
-        console.error(" Ошибка сети:", error);
-        alert(' Ошибка сети: ' + error.message);
-    }
-});
-    </script>
 </body>
 </html>
