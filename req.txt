@@ -1,2 +1,10 @@
-fastapi[all]
-requests
+
+fastapi
+uvicorn[standard]
+sqlalchemy
+asyncpg
+python-jose[cryptography]
+passlib[bcrypt]  
+python-multipart
+python-dotenv
+email-validator       
