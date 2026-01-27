@@ -1,7 +1,15 @@
+* {
+    background-image: url("images/око.jpg");
+}
+
 body {
     color: rgb(192, 225, 255);
 }
 
-.container {
+/* .container{
     
+} */
+
+.container .nav h3{
+    color: brown;
 }
