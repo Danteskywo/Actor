@@ -1,4 +1,15 @@
-from fastapi import FastAPI, HTTPException, Query, Depends 
+from fastapi import FastAPI, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
+from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+from app.actors.models import Actor, Special
+from app.database import Base
+from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
+from app.actors.crud import actor_crud, special_crud
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
 
 # Паттерн - это типовое, проверенное временем решение часто возникающей 
 # проблемы проектирования программного обеспечения. Это не готовая реализация, 
@@ -104,36 +115,28 @@ from fastapi import FastAPI, HTTPException, Query, Depends
 
 # 
 
-from fastapi import FastAPI, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
-from contextlib import asynccontextmanager
-import asyncio
-from fastapi.middleware.cors import CORSMiddleware
 
-from app.actors.models import Actor, Special
-from app.database import engine, get_async_session, Base
-from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
-from app.actors.crud import actor_crud, special_crud
+DATABASE_URL = "postgresql+asyncpg://ilya:77777@localhost:5433/ActorBD"
+engine = create_async_engine(DATABASE_URL, echo=True)
+AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-from fastapi.staticfiles import StaticFiles
-
+async def get_async_session() -> AsyncSession:
+    async with AsyncSessionLocal() as session:
+        yield session
 
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("Таблицы созданы!")
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()
-    print("База данных успешно создана, Повелитель!")
+    print("База данных успешно создана!")
     yield
     print("Приложение останавливается...")
 
 app = FastAPI(lifespan=lifespan)
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,17 +146,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 @app.get("/api")
 async def home():
     return {"message": "API запущенно"}
 
-
 @app.options("/actors/")
 async def options_actors():
     return {}
-
 
 @app.post("/post/actors/", response_model=ActorResponse)
 async def create_actor(
@@ -166,14 +165,12 @@ async def create_actor(
     except Exception as e: 
         raise HTTPException(status_code=400, detail=str(e))
 
-
 @app.get("/actors/", response_model=List[ActorResponse])
 async def get_all_actors(
     oscar_wins: Optional[int] = Query(None, description="Фильтр по количеству оскаров"),
     session: AsyncSession = Depends(get_async_session)
 ):
     actors = await actor_crud.get_all(session)
-
     if oscar_wins is not None:
         actors = [actor for actor in actors if actor.oscar_wins == oscar_wins]
     return actors
@@ -224,7 +221,6 @@ async def filter_actors_by_oscar(
     session: AsyncSession = Depends(get_async_session)
 ):
     actors = await actor_crud.get_all(session)
-
     filtered_actors = []
     for actor in actors:
         if actor.oscar_wins == oscar_wins:
@@ -238,12 +234,10 @@ async def get_actors_by_oscar_wins(
     session: AsyncSession = Depends(get_async_session)
     ):
     actors = await actor_crud.get_all(session)
-
     result_list = []
     for actor in actors:
         if actor.oscar_wins == oscar_wins:
             result_list.append(actor)
-
     if not result_list:
         raise HTTPException(
             status_code=404,
@@ -268,11 +262,10 @@ async def get_actor_by_query(
         )
     return actor
 
-@app.get("/actors/id/{actors_id}")
+@app.get("/actors/id/{actor_id}")
 async def get_actor_by_path(
     actor_id: int,
     session: AsyncSession = Depends(get_async_session) 
-
 ):
     actor = await actor_crud.get_by_id(session, actor_id)
     if not actor:
@@ -282,17 +275,13 @@ async def get_actor_by_path(
         )
     return actor
 
-
-########################--Specials--###########
-
-
-@app.get("/specials/", response_model=SpecialResponse)
+@app.get("/specials/", response_model=List[SpecialResponse])
 async def get_all_specials(session: AsyncSession = Depends(get_async_session)):
     specials = await special_crud.get_all(session)
     return specials
 
 @app.post("/specials/", response_model=SpecialResponse)
-async def create_cpecial(
+async def create_special(
     special_data: SpecialCreate,
     session: AsyncSession = Depends(get_async_session)
 ):
@@ -301,7 +290,5 @@ async def create_cpecial(
         return special
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
     
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
+app.mount("/", StaticFiles(directory="../static", html=True), name="static")
