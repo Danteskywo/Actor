@@ -1,29 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncSession  #Асинхронная сессия БД
-from sqlalchemy import select, update, delete # SQL операции
-from sqlalchemy.orm import selectinload # Загрузка связей
-
-from typing import List, Optional # Аннотации типов
-# List - элементов определенного типа
-# Optional - значение может быть указанного типа или None
-# Dict (словарь) с указанием типов ключей и значений
-# Tuple с фиксированным количеством элементов и их типами
-# Set (множество) элементов определенного типа
-# Any - значение любого типа
-
+from typing import Optional 
 from pydantic import BaseModel, EmailStr, Field
-from datetime import datetime, date
-
-from .models import User # SQLAlchemy модели
-from .scheme import UserCreate, UserUpdate, UserResponse # Pydantic схемы
-
 
 class UserRegister(BaseModel):
-    username: str = Field(default=..., min_length=3, max_length=30)
+    username: str = Field(min_length=3, max_length=50)
     email: EmailStr
-    password: str = Field(default=..., min_length=6)
-    first_name: str = Field(default=..., min_length=3)
-    last_name: str = Field(default=..., min_length=3)
-    date_birth: date
+    password: str = Field(min_length=6)
 
 class UserLogin(BaseModel):
     username: str
@@ -33,10 +14,8 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: str
-    first_name: str
-    last_name: str
     is_active: bool
-    created_at: datetime
+    is_superuser: bool
 
     class Config:
         from_attributes = True
@@ -44,5 +23,7 @@ class UserResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: UserResponse
 
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
