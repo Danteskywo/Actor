@@ -7,35 +7,28 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
-# Добавляем путь к проекту
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Это объект конфигурации Alembic
 config = context.config
 
-# Настройка логгирования
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# --- ИМПОРТ ВАШИХ МОДЕЛЕЙ ДЛЯ POSTGRESQL ---
 try:
     from app.database import Base
     from app.actors.models import Actor, Special
     
-    # Устанавливаем метаданные для автогенерации
     target_metadata = Base.metadata
-    print(" PostgreSQL модели импортированы")
+    print("PostgreSQL модели импортированы")
     
 except ImportError as e:
-    print(f" Ошибка импорта: {e}")
+    print(f"Ошибка импорта: {e}")
     print("Проверьте пути:")
     print(f"sys.path: {sys.path}")
     print(f"Текущая директория: {os.getcwd()}")
     target_metadata = None
-# ------------------------------------------
 
 def run_migrations_offline() -> None:
-    """Запуск миграций в режиме offline (без подключения к БД)."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -49,7 +42,6 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    """Запуск миграций с подключением."""
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -57,7 +49,6 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """Асинхронный запуск миграций для asyncpg."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -71,11 +62,10 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    """Запуск миграций в режиме online."""
     asyncio.run(run_async_migrations())
 
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online
+    run_migrations_online()
