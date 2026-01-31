@@ -5,14 +5,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = f"postgresql+asyncpg://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = os.getenv('DB_PORT', '5433')
+DB_NAME = os.getenv('DB_NAME', 'ActorBD')
+DB_USER = os.getenv('DB_USER', 'ilya')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '77777')
 
-engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+DATABASE_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+AsyncSessionLocal = None
 
 class Base(DeclarativeBase):
     pass
 
 async def get_async_session() -> AsyncSession:
-    async with AsyncSessionLocal() as session:
-        yield session
+    return None
