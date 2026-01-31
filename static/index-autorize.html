@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход в систему</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Вход в систему</h1>
+        
+        <div class="form-group">
+            <label>Имя пользователя</label>
+            <input type="text" id="username" placeholder="Введите имя пользователя">
+        </div>
+        
+        <div class="form-group">
+            <label>Пароль</label>
+            <input type="password" id="password" placeholder="Введите пароль">
+        </div>
+        
+        <div class="form-actions">
+            <button onclick="login()">Войти</button>
+            <button onclick="location.href='/'">Назад</button>
+        </div>
+        
+        <div id="message"></div>
+    </div>
+    
+    <script>
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const message = document.getElementById('message');
+            
+            if (!username || !password) {
+                message.innerHTML = '<p style="color: red;">Заполните все поля</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    message.innerHTML = '<p style="color: green;">Вход выполнен успешно!</p>';
+                    setTimeout(() => location.href = '/', 1500);
+                } else {
+                    const error = await response.json();
+                    message.innerHTML = `<p style="color: red;">Ошибка: ${error.detail}</p>`;
+                }
+            } catch (error) {
+                message.innerHTML = `<p style="color: red;">Ошибка сети: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
