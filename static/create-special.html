@@ -2,77 +2,37 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Добавить актера</title>
+    <title>Добавить специализацию</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1> Добавить актера</h1>
+        <h1>Добавить специализацию</h1>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html" style="color: #4CAF50;">Добавить актера</a>
-            <a href="/create-special.html" style="color: #b03d91;">Добавить специализацию</a>
-            <a href="/special-page.html" style="color: #b03d91;">Все специализации</a>
+            <a href="/create-actor.html">Добавить актера</a>
+            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
         
         <div class="content">
-            <form id="actor-form">
+            <form id="special-form">
                 <div class="form-group">
-                    <label>Имя </label>
-                    <input type="text" id="first_name" required>
+                    <label>Название специализации</label>
+                    <input type="text" id="special_name" required placeholder="Например: Драматические роли">
                 </div>
                 
                 <div class="form-group">
-                    <label>Фамилия </label>
-                    <input type="text" id="last_name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Дата рождения </label>
-                    <input type="date" id="date_of_birth" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Email </label>
-                    <input type="email" id="email" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Телефон </label>
-                    <input type="text" id="phone_number" required placeholder="+79991234567">
-                </div>
-                
-                <div class="form-group">
-                    <label>Адрес *</label>
-                    <input type="text" id="address" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Год начала карьеры *</label>
-                    <input type="number" id="career_start" min="1900" max="2024" value="2000" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Победы Оскар</label>
-                    <input type="number" id="oscar_wins" min="0" value="0">
-                </div>
-                
-                <div class="form-group">
-                    <label>Номинации Оскар</label>
-                    <input type="number" id="oscar_nominations" min="0" value="0">
-                </div>
-                
-                <div class="form-group">
-                    <label>Примечания</label>
-                    <textarea id="special_notes"></textarea>
+                    <label>Описание</label>
+                    <textarea id="special_description" placeholder="Описание специализации..."></textarea>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit"> Сохранить</button>
-                    <button type="button" onclick="location.href='/actors-page.html'"> Отмена</button>
+                    <button type="submit">Сохранить</button>
+                    <button type="button" onclick="location.href='/special-page.html'">Отмена</button>
                 </div>
             </form>
         </div>
@@ -82,5 +42,59 @@
         </footer>
     </div>
     
+    <script>
+        document.getElementById('special-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const specialData = {
+                special_name: document.getElementById('special_name').value,
+                special_description: document.getElementById('special_description').value || null
+            };
+            
+            console.log("Отправляемые данные:", specialData);
+            
+            try {
+                const response = await fetch('/specials/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(specialData)
+                });
+                
+                console.log("Статус ответа:", response.status, response.statusText);
+                
+                const responseText = await response.text();
+                console.log("Сырой ответ:", responseText);
+                
+                if (!response.ok) {
+                    let errorDetail = response.statusText;
+                    
+                    try {
+                        const errorJson = JSON.parse(responseText);
+                        errorDetail = errorJson.detail || errorJson.message || responseText;
+                    } catch {
+                        errorDetail = responseText || response.statusText;
+                    }
+                    
+                    alert(`Ошибка ${response.status}: ${errorDetail}`);
+                    return;
+                }
+                
+                try {
+                    const result = JSON.parse(responseText);
+                    console.log("Успешный ответ:", result);
+                    alert('Специализация успешно добавлена!');
+                    location.href = '/special-page.html';
+                } catch {
+                    alert('Специализация добавлена, но получен неожиданный ответ');
+                }
+                
+            } catch (error) {
+                console.error("Ошибка сети:", error);
+                alert('Ошибка сети: ' + error.message);
+            }
+        });
+    </script>
 </body>
 </html>
