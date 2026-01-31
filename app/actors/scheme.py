@@ -1,13 +1,9 @@
-from enum import Enum, StrEnum, IntEnum
-from pydantic import BaseModel, EmailStr, Field, field_validator, ValidationError, ConfigDict
-from datetime import date, datetime
+from enum import Enum
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
+from datetime import date
 from typing import Optional, List
 import re
-# from sqlalchemy import ForeignKey, text, Text
-# from sqlalchemy.orm import relationship, Mapped, mapped_column
-# from app.database import Base, str_uniq, int_pk, str_null_true
 
-# Enum = перечисление. Наследование от класса. 
 class SpecialtyEnum(Enum):
     WAR_DRAMAS = (1, "Военная драма")
     SOCIAL_DRAMAS = (2, "Социальная драма")
@@ -36,21 +32,20 @@ class SpecialtyEnum(Enum):
     
     def __str__(self):
         return self.display_name
-    
 
 class ActorBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     first_name: str = Field(default=...,min_length=3, max_length=30, description="Имя актера")
     last_name: str = Field(default=..., min_length=3, max_length=30, description="Фамилия актера")
     date_of_birth: date = Field(default=..., description="Дата рождения актера в формате ГГГГ.ММ.ДД")
-    email: EmailStr = Field (default=..., description="Электронная почта студента")
-    phone_number: str = Field (default=..., description="Номер телефона")
-    address: str = Field (default=..., description="Адрес")
-    career_start: int = Field (default = ..., ge=1900, le=2025, description="Год начала карьеры")
+    email: EmailStr = Field(default=..., description="Электронная почта")
+    phone_number: str = Field(default=..., description="Номер телефона")
+    address: str = Field(default=..., description="Адрес")
+    career_start: int = Field(default = ..., ge=1900, le=2025, description="Год начала карьеры")
     oscar_wins: int = Field(default=0, ge=0, description="Количество побед на Оскаре")
     oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
     special_notes: Optional[str] = Field(None, description="Особые примечания")
-    specialty: List[str] = Field(default_factory=list, description="ID специализаций")
+    specialty: List[int] = Field(default_factory=list, description="ID специализаций")
 
     @field_validator("phone_number")
     @classmethod
@@ -66,30 +61,9 @@ class ActorBase(BaseModel):
         if v > date.today():
             raise ValueError ("Дата рождения не может быть в будущем")
         return v
-    
-    @field_validator("specialty")
-    @classmethod
-    def validate_specialty(slc, v: List[str]) -> List[str]:
-        if v:
-            try:
-                specialty_ids = []
-                for item in v:
-                    if isinstance(item, str) and item.isdigit():
-                        specialty_ids.append(int(item))
-                    else:
-                        specialty_ids.append(item)
-                return specialty_ids
-            except:
-                pass
-        return v
-
-            
-            
-#CRUD 
 
 class ActorCreate(ActorBase):
     pass
-
 
 class ActorUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=2, max_length=30)
@@ -103,19 +77,6 @@ class ActorUpdate(BaseModel):
     oscar_nominations: Optional[int] = Field(None, ge=0)
     special_notes: Optional[str] = Field(None)
     specialty: Optional[List[int]] = Field(None)
-
-# class ActorUpdate(BaseModel):
-#     first_name: str = Field(default=...,min_length=3, max_length=30, description="Имя актера")
-#     last_name: str = Field(default=..., min_length=3, max_length=30, description="Фамилия актера")
-#     date_of_birth: date = Field(default=..., description="Дата рождения актера в формате ГГГГ.ММ.ДД")
-#     email: EmailStr = Field (default=..., description="Электронная почта студента")
-#     phone_number: str = Field (default=..., description="Номер телефона")
-#     address: str = Field (default=..., description="Адрес")
-#     career_start: int = Field (default = ..., ge=1900, le=2026, description="Год начала карьеры")
-#     oscar_wins: int = Field(default=None, ge=0, description="Количество побед на Оскаре")
-#     oscar_nominations: int = Field(default=0, ge=0, description="Количество номинаций на Оскар")
-#     special_notes: Optional[str] = Field(None, description="Особые примечания")
-#     specialty: Optional[List[str]] = Field(default=None, description="ID специализаций")
 
 class ActorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -144,4 +105,3 @@ class SpecialResponse(SpecialBase):
     id:int
 
 ActorResponse.model_rebuild()
-        
