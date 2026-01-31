@@ -10,7 +10,6 @@ from app.actors.crud import actor_crud, special_crud
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-
 # Паттерн - это типовое, проверенное временем решение часто возникающей 
 # проблемы проектирования программного обеспечения. Это не готовая реализация, 
 # а шаблон (рецепт), который можно адаптировать под конкретную задачу.
