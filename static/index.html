@@ -2,51 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>База актеров</title>
+    <title>База данных актеров</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <div class="panel">
-            <h1>База данных актеров</h1>
-            <div class="login">
-                <a href="/actors-page-autorize.html"><h2>Войти</h2></a>
-            </div>
-        </div>
+        <h1>База данных актеров</h1>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
             <a href="/create-actor.html">Добавить актера</a>
-            <a href="/create-special.html" style="color: #b03d91;">Добавить специализацию</a>
+            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
         
         <div class="content">
-            <h2>Добро пожаловать!</h2>
             <p>Простая система управления актерами.</p>
             
             <div class="actions">
                 <button onclick="location.href='/actors-page.html'">
-                     Показать всех актеров
+                    Показать всех актеров
                 </button>
                 <button onclick="location.href='/create-actor.html'">
                     Добавить нового актера
                 </button>
-                <button onclick="location.href='/create-special.html'">
-                    Добавить новую специализацию
+                <button onclick="location.href='/special-page.html'">
+                    Показать все специализации
                 </button>
             </div>
             
-            <div class="info">
-                <h3>API эндпоинты/таков путь.....:</h3>
-                <ul>
-                    <li><code>GET /actors/</code> - Все актеры</li>
-                    <li><code>POST /actors/</code> - Создать актера</li>
-                    <li><code>GET /actors/{id}</code> - Получить актера по ID</li>
-                    <li><code>DELETE /actors/{id}</code> - Удалить актера</li>
-                    <li><code>GET /specials/</code> - Все специализации</li>
-                </ul>
+            <div id="stats" style="display: flex; gap: 20px; margin-top: 30px;">
+                <div style="flex: 1; background: #e8f4fd; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="color: #333;" id="actors-count">0</h3>
+                    <p>Актеров в базе</p>
+                </div>
+                <div style="flex: 1; background: #f4e8fd; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="color: #333;" id="specials-count">0</h3>
+                    <p>Специализаций</p>
+                </div>
             </div>
         </div>
         
@@ -54,5 +49,24 @@
             <p>Разработал: Роберт Акобян & Илья Пестерев &copy; 2025</p>
         </footer>
     </div>
+    
+    <script>
+        async function loadStats() {
+            try {
+                const actorsResponse = await fetch('/actors/');
+                const actors = await actorsResponse.json();
+                document.getElementById('actors-count').textContent = actors.length;
+                
+                const specialsResponse = await fetch('/specials/');
+                const specials = await specialsResponse.json();
+                document.getElementById('specials-count').textContent = specials.length;
+                
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+        
+        window.onload = loadStats;
+    </script>
 </body>
 </html>
