@@ -1,22 +1,9 @@
-from sqlalchemy import ForeignKey, text, Text, Table, Column
-# SQLAlchemy - ORM и типы данных. Table- описание таблицы, Column - опр. колонку таблицы.
+from sqlalchemy import ForeignKey, text, Text, Table, Column, String
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-# relationship - связывает модели между собой (один-ко-многим, много-ко-многим)
-# Mapped - аннотация типов для полей модели (современный стиль SQLAlchemy 2.0)
-# mapped_column - замена старого Column() в декларативном стиле
-
-
-from app.database import Base, str_uniq, int_pk, str_null_true
-# Base - родительский класс для всех моделей (база данных)
-# str_uniq - строка, которая должна быть уникальной в таблице
-# int_pk - целое число, которое будет первичным ключом
-# str_null_true - строка, которая может быть пустой (NULL)
-
+from app.database import Base
 from datetime import date
 from typing import Optional, List
 
-
-# Промежуточная таблица Many-to-Many
 actor_specialty = Table(
     'actor_specialty',
     Base.metadata,
@@ -24,47 +11,41 @@ actor_specialty = Table(
     Column('special_id', ForeignKey('specials.id'), primary_key=True)    
 )
 
-# class ActorSpecialty(Base):
-#     ictor_id: Mapped[int] = mapped_column(ForeignKey("actors.id"), primary_key=True)
-#     special_id: Mapped[int] = mapped_column(ForeignKey("specials.id"), primary_key=True)
-
 class Actor(Base):
-    id: Mapped[int_pk] # Первичный ключ.
-    # Mapped — это специальный тип для аннотаций в SQLAlchemy, generic тип
-    first_name: Mapped[str]
-    last_name: Mapped[str]
+    __tablename__ = 'actors'
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    first_name: Mapped[str] = mapped_column(String(50))
+    last_name: Mapped[str] = mapped_column(String(50))
     date_of_birth: Mapped[date]
-    email: Mapped[str_uniq]
-    phone_number: Mapped[str_uniq]
+    email: Mapped[str] = mapped_column(String(100), unique=True)
+    phone_number: Mapped[str] = mapped_column(String(20), unique=True)
     address: Mapped[str] = mapped_column(Text, nullable=False)
     career_start: Mapped[int] = mapped_column(nullable=True)
     oscar_wins: Mapped[int] = mapped_column(default=0)
     oscar_nominations: Mapped[int] = mapped_column(default=0)
     special_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # special_id: Mapped[int] = mapped_column(ForeignKey("specials.id"), nullable=False)
-    specialties: Mapped[List["Special"]] = relationship(  #Many-to-many
-        secondary="actor_specialty",
-        # secondary - Указывает ассоциативную таблицу для связи многие-ко-многим
+    
+    specialties: Mapped[List["Special"]] = relationship(
+        secondary=actor_specialty,
         back_populates="actors",
-        # Двунаправленная связь - создает зеркальную связь в классе Specialty
         lazy="selectin"
-        #Загружает все связанные специальности одним
-        #дополнительным запросом после загрузки актеров
     )
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}(id={self.id}, "
-                f"first_name={self.first_name!r},"
-                f"last_name={self.last_name!r})")  # +!r = 'Robert'
+        return f"Actor(id={self.id}, first_name={self.first_name!r}, last_name={self.last_name!r})"
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} (ID: {self.id})"
     
-class Special (Base):
-    id: Mapped[int_pk]
-    special_name: Mapped[str_uniq]
-    special_description: Mapped[str_null_true]
-    count_actor: Mapped [int] = mapped_column(server_default=text('0'))
+class Special(Base):
+    __tablename__ = 'specials'
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    special_name: Mapped[str] = mapped_column(String(100), unique=True)
+    special_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    count_actor: Mapped[int] = mapped_column(server_default=text('0'))
+    
     actors: Mapped[List["Actor"]] = relationship(
         secondary=actor_specialty,
         back_populates="specialties",
@@ -72,6 +53,7 @@ class Special (Base):
     )
 
     def __str__(self):
-        return f"{self.__class__.__name__}(id={self.id}, special_name={self.special_name!r})"
+        return f"Special(id={self.id}, special_name={self.special_name!r})"
+    
     def __repr__(self):
         return str(self)
