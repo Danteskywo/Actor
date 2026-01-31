@@ -1,40 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Все специализации</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1> Все специализации!</h1>
+        <h1>Все специализации</h1>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html" style="color: #4CAF50;">Добавить актера</a>
-            <a href="/create-special.html" style="color: #b03d91;">Добавить специализацию</a>
-            <a href="/special-page.html" style="color: #b03d91;">Все специализации</a>
+            <a href="/create-actor.html">Добавить актера</a>
+            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
         
         <div class="controls">
-            <input type="text" id="search" placeholder="Поиск по имени..." onkeyup="searchActors()">
-            <button onclick="loadActors()">Обновить</button>
+            <input type="text" id="search" placeholder="Поиск по названию..." onkeyup="searchSpecials()">
+            <button onclick="loadSpecials()">Обновить</button>
         </div>
         
         <div id="loading">Загрузка...</div>
         
         <div id="special-list"></div>
         
-        <div id="no-actors" style="display:none;">
-            <p>Нет актеров в базе.</p>
-            <button onclick="location.href='/create-special.html'"> Добавить специализацию</button>
+        <div id="no-specials" style="display:none;">
+            <p>Нет специализаций в базе.</p>
+            <button onclick="location.href='/create-special.html'">Добавить первую специализацию</button>
         </div>
         
         <footer>
             <p><a href="/">← На главную</a></p>
         </footer>
     </div>
+    
+    <script>
+        async function loadSpecials() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('special-list').innerHTML = '';
+            document.getElementById('no-specials').style.display = 'none';
+            
+            try {
+                const response = await fetch('/specials/');
+                if (!response.ok) {
+                    throw new Error(`Ошибка HTTP: ${response.status}`);
+                }
+                const specials = await response.json();
+                
+                if (specials.length === 0) {
+                    document.getElementById('no-specials').style.display = 'block';
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+                
+                let html = '<table>';
+                html += '<tr><th>ID</th><th>Название</th><th>Описание</th><th>Количество актеров</th><th>Действия</th></tr>';
+                
+                for (const special of specials) {
+                    html += `
+                    <tr>
+                        <td>${special.id}</td>
+                        <td>${special.special_name}</td>
+                        <td>${special.special_description || 'Нет описания'}</td>
+                        <td>${special.count_actor || 0}</td>
+                        <td>
+                            <button onclick="deleteSpecial(${special.id})" class="delete-btn">Удалить</button>
+                        </td>
+                    </tr>
+                    `;
+                }
+                
+                html += '</table>';
+                document.getElementById('special-list').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('special-list').innerHTML = 
+                    '<p style="color: red;">Ошибка загрузки: ' + error.message + '</p>';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        async function deleteSpecial(id) {
+            if (!confirm('Удалить специализацию?')) return;
+            
+            try {
+                const response = await fetch(`/specials/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Специализация удалена!');
+                    loadSpecials();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        function searchSpecials() {
+            const search = document.getElementById('search').value.toLowerCase();
+            const rows = document.querySelectorAll('#special-list tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll('td');
+                const name = cells[1].textContent.toLowerCase();
+                const desc = cells[2].textContent.toLowerCase();
+                rows[i].style.display = (name.includes(search) || desc.includes(search)) ? '' : 'none';
+            }
+        }
+        
+        window.onload = loadSpecials;
+    </script>
 </body>
 </html>
