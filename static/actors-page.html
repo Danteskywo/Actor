@@ -7,20 +7,20 @@
 </head>
 <body>
     <div class="container">
-        <h1>👥 Все актеры</h1>
+        <h1>Все актеры</h1>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html" style="color: #4CAF50;">Добавить актера</a>
-            <a href="/create-special.html" style="color: #b03d91;">Добавить специализацию</a>
-            <a href="/special-page.html" style="color: #b03d91;">Все специализации</a>
+            <a href="/create-actor.html">Добавить актера</a>
+            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
         
         <div class="controls">
             <input type="text" id="search" placeholder="Поиск по имени..." onkeyup="searchActors()">
-            <button onclick="loadActors()">🔄 Обновить</button>
+            <button onclick="loadActors()">Обновить</button>
         </div>
         
         <div id="loading">Загрузка...</div>
@@ -29,7 +29,7 @@
         
         <div id="no-actors" style="display:none;">
             <p>Нет актеров в базе.</p>
-            <button onclick="location.href='/create-actor.html'"> Добавить первого актера</button>
+            <button onclick="location.href='/create-actor.html'">Добавить первого актера</button>
         </div>
         
         <footer>
@@ -62,7 +62,7 @@
                         <td>${actor.first_name}</td>
                         <td>${actor.last_name}</td>
                         <td>${actor.date_of_birth}</td>
-                        <td>🏆 ${actor.oscar_wins}</td>
+                        <td>${actor.oscar_wins}</td>
                         <td>
                             <button onclick="deleteActor(${actor.id})" class="delete-btn">Удалить</button>
                         </td>
@@ -112,7 +112,6 @@
             }
         }
         
-        // Загружаем актеров при открытии страницы
         window.onload = loadActors;
     </script>
 </body>
