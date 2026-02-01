@@ -186,46 +186,80 @@ import os
 # from fastapi.responses import HTMLResponse
 ################################################################################################################################
 
-security = HTTPBearer()
+security = HTTPBearer() # from fastapi.security import HTTPBearer
+# 
+
+# @asynccontextmanager - декоратор (специальная функция,
+#  которая меняет поведение другой функции) и 
+# в асинхронный контекстный менеджер*
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI): # lifespan функция жизненый цикл.
+    # 1. Создаём таблицы
+    # Асинхронное создание всех таблиц базы данных
+    # из SQLAlchemy моделей при старте приложения.
+    #.begin() — начало транзакции
+    # as conn — переменная соединения
+    # conn.run_sync() — запуск синхронной функции в async контексте
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("База данных инициализирована!")
+    print("База данных создана, Повелитель!")
     yield
     print("Приложение останавливается...")
 
+
 app = FastAPI(lifespan=lifespan)
 
+
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware, #  Класс для обработки CORS
+    # Решает проблему: браузер блокирует запросы между разными доменами
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# from fastapi.middleware.cors -  — добавление промежуточного ПО
+# Браузер → CORS Middleware (проверяет разрешён ли домен) → /actors
+#  → Данные → CORS Middleware (добавляет заголовки) → Браузер
 
-@app.get("/api")
+
+@app.get("/api") # # Декоратор, который создаёт GET-эндпоинт по пути "/api"
 async def home():
     return {"message": "API запущено"}
 
+
+
 @app.post("/register", response_model=UserResponse)
+# response_model=UserResponse → FastAPI автоматически конвертирует результат в схему UserResponse
 async def register(user_data: UserRegister, session: AsyncSession = Depends(get_async_session)):
-    crud = UserCRUD()
+    # Функция получает ПРОВЕРЕННЫЕ данные пользователя и ГОТОВОЕ подключение к базе данных
+    crud = UserCRUD() # менеджера пользователей
     try:
         user = await crud.create_user(session, user_data)
+        # Ждём пока менеджер обработает анкету нового пользователя и сохранит
+        # его в базу данных
         return user
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
 
 @app.post("/login", response_model=TokenResponse)
+# POST запрос для входа пользователя
+# response_model=TokenResponse → вернём JWT токен
 async def login(user_data: UserLogin, session: AsyncSession = Depends(get_async_session)):
+    # user_data: UserLogin → логин и пароль от пользователя
+    # session → подключение к БД
+    # Depends(get_async_session) — это паттерн внедрения зависимостей FastAPI,
+    # который автоматически создаёт, передаёт и закрывает сессии БД,
+    # упрощая код и предотвращая утечки ресурсов
     user = await UserCRUD.authenticate_user(session, user_data.username, user_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Неверные имя пользователя или пароль")
     access_token = auth_handler.create_access_token(data={"sub": str(user.id), "username": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
 
 @app.get("/me", response_model=UserResponse)
 async def get_current_user(user: dict = Depends(auth_handler.get_current_user), session: AsyncSession = Depends(get_async_session)):
