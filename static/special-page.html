@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Все специализации</title>
     <link rel="stylesheet" href="/style.css">
 </head>
@@ -31,6 +32,30 @@
             <p>Нет специализаций в базе.</p>
             <button onclick="location.href='/create-special.html'">Добавить первую специализацию</button>
         </div>
+
+        <div id="edit-special-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+            <div style="background: rgba(30, 30, 46, 0.95); padding: 30px; border-radius: 15px; width: 500px; max-width: 90%;">
+                <h2>Редактировать специализацию</h2>
+                <form id="edit-special-form">
+                    <input type="hidden" id="edit-special-id">
+                    
+                    <div class="form-group">
+                        <label>Название специализации</label>
+                        <input type="text" id="edit-special_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Описание</label>
+                        <textarea id="edit-special_description"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit">Сохранить</button>
+                        <button type="button" onclick="closeEditSpecialModal()">Отмена</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         
         <footer>
             <p><a href="/">← На главную</a></p>
@@ -38,6 +63,8 @@
     </div>
     
     <script>
+        let currentSpecialId = null;
+        
         async function loadSpecials() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('special-list').innerHTML = '';
@@ -67,6 +94,7 @@
                         <td>${special.special_description || 'Нет описания'}</td>
                         <td>${special.count_actor || 0}</td>
                         <td>
+                            <button onclick="editSpecial(${special.id})" class="edit-btn">Изменить</button>
                             <button onclick="deleteSpecial(${special.id})" class="delete-btn">Удалить</button>
                         </td>
                     </tr>
@@ -83,6 +111,66 @@
             
             document.getElementById('loading').style.display = 'none';
         }
+        
+        async function editSpecial(id) {
+            currentSpecialId = id;
+            
+            try {
+                const response = await fetch(`/specials/${id}`);
+                if (!response.ok) {
+                    throw new Error('Специализация не найдена');
+                }
+                
+                const special = await response.json();
+                
+                document.getElementById('edit-special-id').value = special.id;
+                document.getElementById('edit-special_name').value = special.special_name;
+                document.getElementById('edit-special_description').value = special.special_description || '';
+                
+                document.getElementById('edit-special-modal').style.display = 'flex';
+                
+            } catch (error) {
+                alert('Ошибка загрузки данных: ' + error.message);
+            }
+        }
+        
+        function closeEditSpecialModal() {
+            document.getElementById('edit-special-modal').style.display = 'none';
+            currentSpecialId = null;
+            document.getElementById('edit-special-form').reset();
+        }
+        
+        document.getElementById('edit-special-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!currentSpecialId) return;
+            
+            const specialData = {
+                special_name: document.getElementById('edit-special_name').value,
+                special_description: document.getElementById('edit-special_description').value || null
+            };
+            
+            try {
+                const response = await fetch(`/specials/${currentSpecialId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(specialData)
+                });
+                
+                if (response.ok) {
+                    alert('Специализация успешно обновлена!');
+                    closeEditSpecialModal();
+                    loadSpecials();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Ошибка сети: ' + error.message);
+            }
+        });
         
         async function deleteSpecial(id) {
             if (!confirm('Удалить специализацию?')) return;
