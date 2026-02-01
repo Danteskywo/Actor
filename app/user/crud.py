@@ -42,9 +42,12 @@ class UserCRUD:
     async def authenticate_user(session: AsyncSession, username: str, password: str) -> User:
         user = await UserCRUD.get_user_by_username(session, username)
         if not user:
+            print(f"Пользователь {username} не найден!")
             return None
         if not user.is_active:
+            print(f"Пользователь {username} неактивен!")
             return None
         if not user.check_password(password):
+            print(f"Неверный пароль для пользователя! {username}")
             return None
         return user

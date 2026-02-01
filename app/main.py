@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from contextlib import asynccontextmanager
@@ -116,6 +116,10 @@ import os
 # CORS(Cross-Origin Resource Sharing) - это обмен ресурсами между разными источниками. 
 # Разрешает или запрещает кросс-доменные запросы от браузеров.
 
+# from fastapi.templating import Jinja2Templates  ##
+# from fastapi.responses import HTMLResponse
+
+
 security = HTTPBearer()
 
 @asynccontextmanager
@@ -127,6 +131,7 @@ async def lifespan(app: FastAPI):
     print("Приложение останавливается...")
 
 app = FastAPI(lifespan=lifespan)
+# templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,6 +140,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/api")
 async def home():
@@ -255,4 +261,4 @@ async def create_special(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-app.mount("/", StaticFiles(directory="../static", html=True), name="static")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
