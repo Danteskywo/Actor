@@ -2,51 +2,86 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>База данных актеров</title>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>База данных актеров</h1>
+        <div class="panel">
+            <h1>🎬 База данных актеров</h1>
+            <div class="auth-header">
+                <button onclick="location.href='/actors-page-autorize.html'" style="background: linear-gradient(135deg, #bb86fc 0%, #985eff 100%);">
+                    🔐 Вход
+                </button>
+            </div>
+        </div>
         
         <div class="nav">
-            <a href="/">Главная</a>
-            <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html">Добавить актера</a>
-            <a href="/create-special.html">Добавить специализацию</a>
-            <a href="/special-page.html">Все специализации</a>
-            <a href="/docs" target="_blank">API Docs</a>
+            <a href="/">🏠 Главная</a>
+            <a href="/actors-page.html">👥 Все актеры</a>
+            <a href="/create-actor.html" style="color: #4CAF50;">➕ Добавить актера</a>
+            <a href="/create-special.html" style="color: #b03d91;">🎭 Добавить специализацию</a>
+            <a href="/special-page.html" style="color: #b03d91;">📋 Все специализации</a>
+            <a href="/docs" target="_blank">📚 API Документация</a>
         </div>
         
         <div class="content">
-            <p>Простая система управления актерами.</p>
+            <h2>Добро пожаловать в систему управления актерами!</h2>
+            <p>Здесь вы можете управлять базой данных актеров, их специализациями и наградами.</p>
+            
+            <div class="info">
+                <h3>📊 Быстрая статистика:</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 id="actors-count">0</h3>
+                        <p>Актеров в базе</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="specials-count">0</h3>
+                        <p>Специализаций</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="oscar-count">0</h3>
+                        <p>Всего Оскаров</p>
+                    </div>
+                </div>
+            </div>
             
             <div class="actions">
                 <button onclick="location.href='/actors-page.html'">
-                    Показать всех актеров
+                    👥 Показать всех актеров
                 </button>
                 <button onclick="location.href='/create-actor.html'">
-                    Добавить нового актера
+                    ➕ Добавить нового актера
                 </button>
                 <button onclick="location.href='/special-page.html'">
-                    Показать все специализации
+                    📋 Показать все специализации
+                </button>
+                <button onclick="location.href='/create-special.html'">
+                    🎭 Добавить новую специализацию
                 </button>
             </div>
             
-            <div id="stats" style="display: flex; gap: 20px; margin-top: 30px;">
-                <div style="flex: 1; background: #e8f4fd; padding: 20px; border-radius: 8px; text-align: center;">
-                    <h3 style="color: #333;" id="actors-count">0</h3>
-                    <p>Актеров в базе</p>
-                </div>
-                <div style="flex: 1; background: #f4e8fd; padding: 20px; border-radius: 8px; text-align: center;">
-                    <h3 style="color: #333;" id="specials-count">0</h3>
-                    <p>Специализаций</p>
-                </div>
+            <div class="info">
+                <h3>🛠️ Доступные API эндпоинты:</h3>
+                <ul>
+                    <li><code>GET /actors/</code> - Все актеры</li>
+                    <li><code>POST /actors/</code> - Создать актера</li>
+                    <li><code>GET /actors/{id}</code> - Получить актера по ID</li>
+                    <li><code>PUT /actors/{id}</code> - Обновить актера</li>
+                    <li><code>DELETE /actors/{id}</code> - Удалить актера</li>
+                    <li><code>GET /specials/</code> - Все специализации</li>
+                    <li><code>POST /specials/</code> - Создать специализацию</li>
+                    <li><code>DELETE /specials/{id}</code> - Удалить специализацию</li>
+                    <li><code>GET /actors/search/?name=...</code> - Поиск актеров</li>
+                </ul>
             </div>
         </div>
         
         <footer>
-            <p>Разработал: Роберт Акобян & Илья Пестерев &copy; 2025</p>
+            <p>Разработано командой Роберт Акобян & Илья Пестерев &copy; 2025</p>
+            <p><a href="/docs" target="_blank">📖 Полная документация API</a></p>
         </footer>
     </div>
     
@@ -60,6 +95,12 @@
                 const specialsResponse = await fetch('/specials/');
                 const specials = await specialsResponse.json();
                 document.getElementById('specials-count').textContent = specials.length;
+                
+                let totalOscars = 0;
+                actors.forEach(actor => {
+                    totalOscars += actor.oscar_wins;
+                });
+                document.getElementById('oscar-count').textContent = totalOscars;
                 
             } catch (error) {
                 console.error('Ошибка загрузки статистики:', error);
