@@ -1,9 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from app.actors.models import Actor, Special
 from app.database import Base, get_async_session, engine
 from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
 from app.actors.crud import actor_crud, special_crud
@@ -131,7 +130,6 @@ async def lifespan(app: FastAPI):
     print("Приложение останавливается...")
 
 app = FastAPI(lifespan=lifespan)
-# templates = Jinja2Templates(directory="templates")
 
 app.add_middleware(
     CORSMiddleware,
@@ -140,7 +138,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/api")
 async def home():
@@ -260,5 +257,43 @@ async def create_special(
         return special
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.put("/specials/{special_id}", response_model=SpecialResponse)
+async def update_special(
+    special_id: int,
+    special_data: SpecialCreate,
+    session: AsyncSession = Depends(get_async_session)
+):
+    try:
+        special = await special_crud.get_by_id(session, special_id)
+        if not special:
+            raise HTTPException(status_code=404, detail=f"Специализация с ID {special_id} не найдена")
+        
+        update_data = special_data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            if value is not None:
+                setattr(special, key, value)
+        
+        await session.commit()
+        await session.refresh(special)
+        return special
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/specials/{special_id}")
+async def delete_special(
+    special_id: int,
+    session: AsyncSession = Depends(get_async_session)
+):
+    success = await special_crud.delete(session, special_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Специализация с ID {special_id} не найдена")
+    return {"message": f"Специализация с ID {special_id} успешно удалена!"}
+
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+if os.path.exists(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+    print(f"Статические файлы подключены из: {static_dir}")
+else:
+    print(f"Папка static не найдена: {static_dir}")
