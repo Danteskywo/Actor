@@ -1,14 +1,15 @@
+# dict_list_to_json() — сохраняет данные в JSON файл
+# json_to_dict_list() — загружает данные из JSON файла
+
 import json
 
 def dict_list_to_json(dict_list, filename):
-    """
-    Преобразует список словарей в JSON-строку и сохраняет её в файл.
 
-    :param dict_list: Список словарей
-    :param filename: Имя файла для сохранения JSON-строки
-    :return: JSON-строка или None в случае ошибки
-    """
-    
+    #Преобразует список словарей в JSON-строку и сохраняет её в файл.
+    # :param dict_list: Список словарей
+    # :param filename: Имя файла для сохранения JSON-строки
+    # :return: JSON-строка или None в случае ошибки
+ 
     try:
         # Преобразуем список словарей в JSON строку
         json_str = json.dumps(dict_list, ensure_ascii=False, indent=4)
@@ -24,12 +25,12 @@ def dict_list_to_json(dict_list, filename):
         return None
     
 def json_to_dict_list(filename):
-    """
-    Преобразует JSON-строку из файла в список словарей.
+    
+    # Преобразует JSON-строку из файла в список словарей.
 
-    :param filename: Имя файла с JSON-строкой
-    :return: Список словарей или None в случае ошибки
-    """
+    #:param filename: Имя файла с JSON-строкой
+    #:return: Список словарей или None в случае ошибки
+    
     try:
         with open(filename, 'r', encoding='utf-8') as file:
          json_str = file.read()
