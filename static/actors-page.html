@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Все актеры</title>
     <link rel="stylesheet" href="/style.css">
 </head>
@@ -62,8 +63,9 @@
                         <td>${actor.first_name}</td>
                         <td>${actor.last_name}</td>
                         <td>${actor.date_of_birth}</td>
-                        <td>${actor.oscar_wins}</td>
+                        <td>🏆 ${actor.oscar_wins}</td>
                         <td>
+                            <button onclick="editActor(${actor.id})" class="edit-btn" style="background: #2196F3; margin-right: 5px;">Изменить</button>
                             <button onclick="deleteActor(${actor.id})" class="delete-btn">Удалить</button>
                         </td>
                     </tr>
@@ -79,6 +81,12 @@
             }
             
             document.getElementById('loading').style.display = 'none';
+        }
+        
+        function editActor(id) {
+            // Переход на страницу редактирования (можно сделать модальное окно или отдельную страницу)
+            alert(`Редактирование актера с ID: ${id}\nЭта функция в разработке`);
+            // В будущем можно сделать: location.href = `/edit-actor.html?id=${id}`;
         }
         
         async function deleteActor(id) {
