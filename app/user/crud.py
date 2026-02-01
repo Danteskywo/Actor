@@ -25,6 +25,7 @@ class UserCRUD:
             username=user_data.username,
             email=user_data.email,
             hashed_password=hashed_password,
+            is_active=True,
         )
         session.add(user)
         await session.commit()
