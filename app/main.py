@@ -1,17 +1,84 @@
+
 from fastapi import FastAPI, Depends, HTTPException, Query
+# Импорт основных инструментов FastAPI для создания веб-приложения.
+# Depends - Зависимости/ Внедрение зависимостей
+# HTTPException - Ошибки API, cпециальное исключение для HTTP ошибок,
+# автоматически конвертируется в JSON ответ,
+# Позволяет задать статус код и сообщение
+# Query - Параметры запроса, Ограничения (min/max, регулярные выражения)
+# Значения по умолчанию, Валидация параметров URL
+
 from sqlalchemy.ext.asyncio import AsyncSession
+# Асинхронная сессия для работы с БД в FastAPI.
+# Позволяет выполнять SQL-запросы не блокируя основной поток.
+
 from typing import List, Optional
+# Аннотации типов для Python. Какие типы данных ожидаются в вашем коде?
+# List - Список определённого типа
+# Optional - Может быть указанного типа или None
+
 from contextlib import asynccontextmanager
+# Декоратор для создания асинхронных контекстных менеджеров.
+# Позволяет создавать собственные async with блоки с настройкой и очисткой ресурсов.
+
+
 from fastapi.middleware.cors import CORSMiddleware
+# Промежуточное ПО для разрешения CORS (Cross-Origin Resource Sharing).
+# Позволяет вашему FastAPI API принимать запросы с других доменов
+#  (например, с фронтенда на React).
+
+
 from app.database import Base, get_async_session, engine
+# Импорт компонентов базы данных для работы с
+# PostgreSQL через SQLAlchemy в FastAPI проекте Actor.
+# Base - Базовый класс для моделей
+# get_async_session - Фабрика асинхронных сессий
+# engine - Движок подключения к БД
+
 from app.actors.scheme import ActorCreate, ActorResponse, ActorUpdate, SpecialCreate, SpecialResponse
+# Импорт Pydantic схем для валидации,
+# сериализации и документирования данных актеров и специализаций в FastAPI.
+# Формы ответа: SpecialResponse Схема для ответа со специализацией,
+ 
 from app.actors.crud import actor_crud, special_crud
+# Импорт CRUD операций для работы с актерами и специализациями в базе данных.
+# CRUD = Create, Read, Update, Delete.
+
+
 from app.user.scheme import UserRegister, UserLogin, UserResponse, TokenResponse
+# Импорт Pydantic схем для системы аутентификации
+#  и пользователей в FastAPI проекте Actor.
+
 from app.user.crud import UserCRUD
+# Импорт класса CRUD операций для пользователей
+# — содержит всю логику работы с пользователями в базе данных
+# (создание, аутентификация, обновление, удаление).
+
+
 from app.user.auth import auth_handler
+# Импорт обработчика аутентификации — утилита для работы с JWT токенами
+# (создание, валидация, обновление) в вашем FastAPI проекте Actor.
+# Создаёт JWT токены, Проверяет валидность токенов, Декодирует данные из токенов,
+# Управляет сроком жизни токенов, Обрабатывает refresh токены
+
 from fastapi.security import HTTPBearer
+# Схема безопасности для HTTP Bearer аутентификации через заголовок Authorization.
+# Это стандартный способ передачи JWT токенов в HTTP запросах.
+# Bearer Authentication (аутентификация предъявителя) ->
+# Стандартный способ передачи токенов в HTTP
+# Автоматическая валидация формата заголовка
+# Интеграция с Swagger документацией
+# Извлечение токена из запроса
+
 from fastapi.staticfiles import StaticFiles
+# Импортирование наших статических файлов
+
 import os
+# Импорт стандартного модуля Python для работы с операционной системой.
+# Позволяет взаимодействовать с файловой системой,
+# переменными окружения, путями и другими системными функциями.
+
+########################################################################################
 
 # Паттерн - это типовое, проверенное временем решение часто возникающей 
 # проблемы проектирования программного обеспечения. Это не готовая реализация, 
@@ -117,7 +184,7 @@ import os
 
 # from fastapi.templating import Jinja2Templates  ##
 # from fastapi.responses import HTMLResponse
-
+################################################################################################################################
 
 security = HTTPBearer()
 
