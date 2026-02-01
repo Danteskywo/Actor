@@ -254,20 +254,5 @@ async def create_special(
         return special
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/specials/{special_id}")
-async def delete_special(
-    special_id: int,
-    session: AsyncSession = Depends(get_async_session)
-):
-    success = await special_crud.delete(session, special_id)
-    if not success:
-        raise HTTPException(status_code=404, detail=f"Специализация с ID {special_id} не найдена")
-    return {"message": f"Специализация с ID {special_id} успешно удалена!"}
-
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-if os.path.exists(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
-    print(f"Статические файлы подключены из: {static_dir}")
-else:
-    print(f"Папка static не найдена: {static_dir}")
+    
+app.mount("/", StaticFiles(directory="../static", html=True), name="static")
