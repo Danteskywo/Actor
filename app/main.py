@@ -262,59 +262,89 @@ async def login(user_data: UserLogin, session: AsyncSession = Depends(get_async_
 
 
 @app.get("/me", response_model=UserResponse)
+# Объявляет функцию для получения полных данных текущего пользователя
 async def get_current_user(user: dict = Depends(auth_handler.get_current_user), session: AsyncSession = Depends(get_async_session)):
-    crud = UserCRUD()
+    # async def get_current_user - асинхронная функция "получить текущего пользователя"
+    # user: dict = Depends(auth_handler.get_current_user) - получаем пользователя из JWT токена
+    # session: AsyncSession = Depends(get_async_session) - получаем подключение к базе данных
+    crud = UserCRUD() # Создаём экземпляр
+    # Ищет пользователя в базе данных по имени из токена
     db_user = await crud.get_user_by_username(session, user["username"])
+    # crud.get_user_by_username() - метод поиска пользователя по username
+    # (session, user["username"]) - передаём: подключение к БД и имя пользователя
     if not db_user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return db_user
 
-@app.options("/actors/")
-async def options_actors():
-    return {}
 
+@app.options("/actors/")
+# Объявляет асинхронную функцию для обработки OPTIONS запроса
+async def options_actors():
+    return {} # Возвращает пустой JSON объект
+    # 1. Убедиться что он точно существует
+    # 2. Вернуть специфичные заголовки
+    # 3. Обработать логику перед CORS middleware
+
+
+# Создаёт POST эндпоинт для добавления нового актёра
 @app.post("/actors/", response_model=ActorResponse)
 async def create_actor(
-    actor_data: ActorCreate,
-    session: AsyncSession = Depends(get_async_session)
-):
+    actor_data: ActorCreate, # actor_data: ActorCreate - данные актёра (валидируются через Pydantic)
+    session: AsyncSession = Depends(get_async_session) # подключение к БД
+): # Объявляет функцию создания актёра с параметрами
     try:
-        actor = await actor_crud.create(session, actor_data)
+        actor = await actor_crud.create(session, actor_data) # Сохраняет актёра в базу данных
         return actor
     except Exception as e: 
         raise HTTPException(status_code=400, detail=str(e))
 
+# получение списка актероов
 @app.get("/actors/", response_model=List[ActorResponse])
+# response_model=List[ActorResponse] - ответ будет списком объектов ActorResponse
 async def get_all_actors(
     oscar_wins: Optional[int] = Query(None, description="Фильтр по количеству оскаров"),
-    session: AsyncSession = Depends(get_async_session)
+    # Объявляет функцию с параметрами фильтрации
+    session: AsyncSession = Depends(get_async_session) # Подключаем БД
 ):
-    actors = await actor_crud.get_all(session)
-    if oscar_wins is not None:
+    actors = await actor_crud.get_all(session) # Получает ВСЕХ актёров из базы данных
+    if oscar_wins is not None: # Проверяет передан ли параметр фильтрации
         actors = [actor for actor in actors if actor.oscar_wins == oscar_wins]
+        # Фильтрует актёров по количеству оскаров
+        # [actor for actor in actors] - создание нового списка
+        # if actor.oscar_wins == oscar_wins - условие фильтрации
     return actors
 
+# Получаем актера по ID
 @app.get("/actors/{actor_id}", response_model=ActorResponse)
+# Функция принимает ID актёра и подключение к БД
 async def get_actor_by_id(
     actor_id: int,
     session: AsyncSession = Depends(get_async_session)
-):
-    actor = await actor_crud.get_by_id(session, actor_id)
+): 
+    actor = await actor_crud.get_by_id(session, actor_id) # Ищем актёра в базе данных по его ID
     if not actor: 
         raise HTTPException(status_code=404, detail=f"Актер с ID {actor_id} не найден")
-    return actor
+    return actor 
+# Найти актёра в базе по его номеру и вернуть его данные, или ошибку если не найден
 
+
+# Обновить атера по id, вернем обновленные данные. 
 @app.put("/actors/{actor_id}", response_model=ActorResponse)
+# # Функция принимает: ID актёра, новые данные, подключение к БД
 async def update_actor(
     actor_id: int,
     actor_data: ActorUpdate,
     session: AsyncSession = Depends(get_async_session)
-):
+): 
     actor = await actor_crud.update(session, actor_id, actor_data)
+    # Обновляем данные актёра в базе
     if not actor:
         raise HTTPException(status_code=404, detail=f"Актер с ID {actor_id} не найден")
     return actor
 
+
+
+# Удаление актера по id 
 @app.delete("/actors/{actor_id}")
 async def delete_actor(
     actor_id: int,
@@ -325,28 +355,59 @@ async def delete_actor(
         raise HTTPException(status_code=404, detail=f"Актер с ID {actor_id} не найден")
     return {"message": f"Актер с ID {actor_id} успешно удален!"}
 
+
+
+# Поиск атера по Имени
 @app.get("/actors/search/", response_model=List[ActorResponse])
+# Возвращаемый тип: List
+# Путь: /actors/search/
 async def search_actors(
     name: str = Query(default=..., description="Поиск актера по имени и фамилии"),
+    # Query - параметрами строки запроса
+    # str - строка; default=...- обяз. поле ввода; description - описание
     session: AsyncSession = Depends(get_async_session)
+    # Асинхронное подключение к БД
 ):
     actors = await actor_crud.search(session, name)
+    # контроллер делегирует работу CRUD-слою
     return actors
 
+
+# реализует операцию чтения (Read) в паттерне CRUD
+# для получения всех записей из таблицы specials
 @app.get("/specials/", response_model=List[SpecialResponse])
+# @app.get — HTTP метод для получения данных
+# "/specials/" — RESTful путь (ресурс во множественном числе)
+# response_model — схема валидации и сериализации ответа
 async def get_all_specials(session: AsyncSession = Depends(get_async_session)):
+    # async def — асинхронная функция
+    # get_all_specials — соглашение об именовании
+    # session — инъекция зависимости для работы с БД
     specials = await special_crud.get_all(session)
+    # Делегирование бизнес-логики в CRUD-слой
+    # Возврат результата (автосериализация через Pydantic)
     return specials
 
+# Получаем specials по ID/ 
+# {special_id} - только Одного
+# /specials/ - список Всех
+# /specials/?q=... - GET Search список всех поиск/фильтрация
 @app.get("/specials/{special_id}", response_model=SpecialResponse)
+# response_model=SpecialResponse - схема ответа
+# response_model - Валидация + сериализация + документация
+# Проверяет, что возвращаемые данные соответствуют схеме
 async def get_special_by_id(
     special_id: int,
     session: AsyncSession = Depends(get_async_session)
+    # AsyncSession = подключение к БД для асинхронных запросов
+    # Depends() = механизм внедрения зависимостей FastAPI
 ):
     special = await special_crud.get_by_id(session, special_id)
     if not special:
         raise HTTPException(status_code=404, detail=f"Специализация с ID {special_id} не найдена")
     return special
+
+
 
 @app.post("/specials/", response_model=SpecialResponse)
 async def create_special(
@@ -358,6 +419,9 @@ async def create_special(
         return special
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 @app.put("/specials/{special_id}", response_model=SpecialResponse)
 async def update_special(
@@ -381,6 +445,9 @@ async def update_special(
         
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+
 
 @app.delete("/specials/{special_id}")
 async def delete_special(
