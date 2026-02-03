@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import jwt
+from jose import jwt, JWTError
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -12,9 +12,14 @@ security = HTTPBearer()
 
 class AuthHandler:
     @staticmethod
-    def create_access_token(data: dict) -> str:
+    def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
         to_encode = data.copy()
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+            
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         return encoded_jwt
@@ -24,7 +29,7 @@ class AuthHandler:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
-        except jwt.JWTError:
+        except JWTError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Невалидный токен"
@@ -35,10 +40,19 @@ class AuthHandler:
         credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
         token = credentials.credentials
         payload = AuthHandler.verify_token(token)
+        
+        user_id = payload.get("sub")
+        username = payload.get("username")
+        
+        if not user_id or not username:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAZUTHORIZED,
+                detail="Токен не содержит необходимых данных пользователя"
+            )
+            
         return {
-            "user_id": int(payload.get("sub")),
-            "username": payload.get("username"),
-            "is_superuser": payload.get("is_superuser", False)
+            "user_id": user_id,
+            "username": username
         }
 
 auth_handler = AuthHandler()

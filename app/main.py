@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, Depends, HTTPException, Query
 # Импорт основных инструментов FastAPI для создания веб-приложения.
 # Depends - Зависимости/ Внедрение зависимостей
@@ -118,7 +117,7 @@ import os
 # зависимостей в FastAPI. Внедряет (инжектирует) результаты выполнения 
 # зависимых функций в обработчики маршрутов. Основана на системе внедрения 
 # зависимостей (Dependency Injection).
-# Примером из жизни можно привести процесс заказа в ресторане. Чтобы подать 
+# Примером из жизни может служить процесс заказа в ресторане. Чтобы подать 
 # блюдо(обработать запрос), официанту (обработчику маршрута) нужны: 
 # 1) чистый пол (clean_table то есть чистая таблица), 
 # 2) готовое блюдо ( prepare_food то есть подготовленная пища), 3) приборы 
@@ -419,8 +418,6 @@ async def create_special(
         return special
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
 
 
 @app.put("/specials/{special_id}", response_model=SpecialResponse)
