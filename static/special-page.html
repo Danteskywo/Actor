@@ -8,13 +8,18 @@
 </head>
 <body>
     <div class="container">
-        <h1>Все специализации</h1>
+        <div class="panel">
+            <h1>Все специализации</h1>
+            <div class="auth-header">
+                <button class="auth-button" id="auth-btn">🔐 Войти</button>
+            </div>
+        </div>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html">Добавить актера</a>
-            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/create-actor.html" class="requires-auth">Добавить актера</a>
+            <a href="/create-special.html" class="requires-auth">Добавить специализацию</a>
             <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
@@ -30,7 +35,7 @@
         
         <div id="no-specials" style="display:none;">
             <p>Нет специализаций в базе.</p>
-            <button onclick="location.href='/create-special.html'">Добавить первую специализацию</button>
+            <button onclick="location.href='/create-special.html'" class="requires-auth">Добавить первую специализацию</button>
         </div>
 
         <div id="edit-special-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
@@ -65,6 +70,56 @@
     <script>
         let currentSpecialId = null;
         
+        // Проверка авторизации
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const authBtn = document.getElementById('auth-btn');
+            
+            if (token) {
+                authBtn.innerHTML = '🚪 Выйти';
+                authBtn.onclick = logout;
+                // Разблокируем все элементы
+                document.querySelectorAll('.requires-auth').forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                });
+            } else {
+                authBtn.innerHTML = '🔐 Войти';
+                authBtn.onclick = function() {
+                    location.href = '/actors-page-autorize.html';
+                };
+                // Блокируем элементы, требующие авторизации
+                blockUnauthorizedButtons();
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Вы вышли из системы');
+            location.reload();
+        }
+        
+        function blockUnauthorizedButtons() {
+            document.querySelectorAll('.requires-auth').forEach(el => {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.5';
+            });
+            
+            document.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => {
+                btn.style.display = 'none';
+            });
+        }
+        
+        function requireAuth(action) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для этого действия необходимо войти в систему');
+                location.href = '/actors-page-autorize.html';
+                return false;
+            }
+            return true;
+        }
+        
         async function loadSpecials() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('special-list').innerHTML = '';
@@ -87,16 +142,19 @@
                 html += '<tr><th>ID</th><th>Название</th><th>Описание</th><th>Количество актеров</th><th>Действия</th></tr>';
                 
                 for (const special of specials) {
+                    const token = localStorage.getItem('token');
+                    const actionButtons = token ? `
+                        <button onclick="editSpecial(${special.id})" class="edit-btn">Изменить</button>
+                        <button onclick="deleteSpecial(${special.id})" class="delete-btn">Удалить</button>
+                    ` : '<span style="color:#888">Требуется вход</span>';
+                    
                     html += `
                     <tr>
                         <td>${special.id}</td>
                         <td>${special.special_name}</td>
                         <td>${special.special_description || 'Нет описания'}</td>
                         <td>${special.count_actor || 0}</td>
-                        <td>
-                            <button onclick="editSpecial(${special.id})" class="edit-btn">Изменить</button>
-                            <button onclick="deleteSpecial(${special.id})" class="delete-btn">Удалить</button>
-                        </td>
+                        <td>${actionButtons}</td>
                     </tr>
                     `;
                 }
@@ -113,6 +171,7 @@
         }
         
         async function editSpecial(id) {
+            if (!requireAuth()) return;
             currentSpecialId = id;
             
             try {
@@ -145,6 +204,12 @@
             
             if (!currentSpecialId) return;
             
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для этого действия необходимо войти в систему');
+                return;
+            }
+            
             const specialData = {
                 special_name: document.getElementById('edit-special_name').value,
                 special_description: document.getElementById('edit-special_description').value || null
@@ -154,7 +219,8 @@
                 const response = await fetch(`/specials/${currentSpecialId}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify(specialData)
                 });
@@ -163,6 +229,10 @@
                     alert('Специализация успешно обновлена!');
                     closeEditSpecialModal();
                     loadSpecials();
+                } else if (response.status === 401) {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    localStorage.removeItem('token');
+                    checkAuth();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + error.detail);
@@ -173,16 +243,27 @@
         });
         
         async function deleteSpecial(id) {
+            if (!requireAuth()) return;
+            
             if (!confirm('Удалить специализацию?')) return;
+            
+            const token = localStorage.getItem('token');
             
             try {
                 const response = await fetch(`/specials/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 if (response.ok) {
                     alert('Специализация удалена!');
                     loadSpecials();
+                } else if (response.status === 401) {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    localStorage.removeItem('token');
+                    checkAuth();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + error.detail);
@@ -204,7 +285,10 @@
             }
         }
         
-        window.onload = loadSpecials;
+        window.onload = function() {
+            checkAuth();
+            loadSpecials();
+        };
     </script>
 </body>
 </html>
