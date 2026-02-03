@@ -8,13 +8,18 @@
 </head>
 <body>
     <div class="container">
-        <h1>Все актеры</h1>
+        <div class="panel">
+            <h1>Все актеры</h1>
+            <div class="auth-header">
+                <button class="auth-button" id="auth-btn">🔐 Войти</button>
+            </div>
+        </div>
         
         <div class="nav">
             <a href="/">Главная</a>
             <a href="/actors-page.html">Все актеры</a>
-            <a href="/create-actor.html">Добавить актера</a>
-            <a href="/create-special.html">Добавить специализацию</a>
+            <a href="/create-actor.html" class="requires-auth">Добавить актера</a>
+            <a href="/create-special.html" class="requires-auth">Добавить специализацию</a>
             <a href="/special-page.html">Все специализации</a>
             <a href="/docs" target="_blank">API Docs</a>
         </div>
@@ -30,7 +35,7 @@
         
         <div id="no-actors" style="display:none;">
             <p>Нет актеров в базе.</p>
-            <button onclick="location.href='/create-actor.html'">Добавить первого актера</button>
+            <button onclick="location.href='/create-actor.html'" class="requires-auth">Добавить первого актера</button>
         </div>
 
         <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
@@ -80,6 +85,56 @@
     <script>
         let currentActorId = null;
         
+        // Проверка авторизации
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const authBtn = document.getElementById('auth-btn');
+            
+            if (token) {
+                authBtn.innerHTML = '🚪 Выйти';
+                authBtn.onclick = logout;
+                // Разблокируем все элементы
+                document.querySelectorAll('.requires-auth').forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                });
+            } else {
+                authBtn.innerHTML = '🔐 Войти';
+                authBtn.onclick = function() {
+                    location.href = '/actors-page-autorize.html';
+                };
+                // Блокируем элементы, требующие авторизации
+                blockUnauthorizedButtons();
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Вы вышли из системы');
+            location.reload();
+        }
+        
+        function blockUnauthorizedButtons() {
+            document.querySelectorAll('.requires-auth').forEach(el => {
+                el.style.pointerEvents = 'none';
+                el.style.opacity = '0.5';
+            });
+            
+            document.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => {
+                btn.style.display = 'none';
+            });
+        }
+        
+        function requireAuth(action) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для этого действия необходимо войти в систему');
+                location.href = '/actors-page-autorize.html';
+                return false;
+            }
+            return true;
+        }
+        
         async function loadActors() {
             document.getElementById('loading').style.display = 'block';
             document.getElementById('actors-list').innerHTML = '';
@@ -98,6 +153,12 @@
                 html += '<tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Дата рождения</th><th>Оскары</th><th>Действия</th></tr>';
                 
                 for (const actor of actors) {
+                    const token = localStorage.getItem('token');
+                    const actionButtons = token ? `
+                        <button onclick="editActor(${actor.id})" class="edit-btn">Изменить</button>
+                        <button onclick="deleteActor(${actor.id})" class="delete-btn">Удалить</button>
+                    ` : '<span style="color:#888">Требуется вход</span>';
+                    
                     html += `
                     <tr>
                         <td>${actor.id}</td>
@@ -105,10 +166,7 @@
                         <td>${actor.last_name}</td>
                         <td>${actor.date_of_birth}</td>
                         <td>🏆 ${actor.oscar_wins}</td>
-                        <td>
-                            <button onclick="editActor(${actor.id})" class="edit-btn">Изменить</button>
-                            <button onclick="deleteActor(${actor.id})" class="delete-btn">Удалить</button>
-                        </td>
+                        <td>${actionButtons}</td>
                     </tr>
                     `;
                 }
@@ -125,6 +183,7 @@
         }
         
         async function editActor(id) {
+            if (!requireAuth()) return;
             currentActorId = id;
             
             try {
@@ -160,6 +219,12 @@
             
             if (!currentActorId) return;
             
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для этого действия необходимо войти в систему');
+                return;
+            }
+            
             const actorData = {
                 first_name: document.getElementById('edit-first_name').value,
                 last_name: document.getElementById('edit-last_name').value,
@@ -172,7 +237,8 @@
                 const response = await fetch(`/actors/${currentActorId}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify(actorData)
                 });
@@ -181,6 +247,10 @@
                     alert('Актер успешно обновлен!');
                     closeEditModal();
                     loadActors();
+                } else if (response.status === 401) {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    localStorage.removeItem('token');
+                    checkAuth();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + error.detail);
@@ -191,16 +261,27 @@
         });
         
         async function deleteActor(id) {
+            if (!requireAuth()) return;
+            
             if (!confirm('Удалить актера?')) return;
+            
+            const token = localStorage.getItem('token');
             
             try {
                 const response = await fetch(`/actors/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
                 });
                 
                 if (response.ok) {
                     alert('Актер удален!');
                     loadActors();
+                } else if (response.status === 401) {
+                    alert('Сессия истекла. Пожалуйста, войдите снова.');
+                    localStorage.removeItem('token');
+                    checkAuth();
                 } else {
                     const error = await response.json();
                     alert('Ошибка: ' + error.detail);
@@ -221,7 +302,10 @@
             }
         }
         
-        window.onload = loadActors;
+        window.onload = function() {
+            checkAuth();
+            loadActors();
+        };
     </script>
 </body>
 </html>
