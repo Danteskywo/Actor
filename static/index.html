@@ -11,24 +11,26 @@
         <div class="panel">
             <h1>🎬 База данных актеров</h1>
             <div class="auth-header">
-                <button onclick="location.href='/actors-page-autorize.html'" style="background: linear-gradient(135deg, #bb86fc 0%, #985eff 100%);">
-                    🔐 Вход
-                </button>
+                <button class="auth-button" id="auth-btn">🔐 Войти</button>
             </div>
         </div>
         
         <div class="nav">
             <a href="/">🏠 Главная</a>
             <a href="/actors-page.html">👥 Все актеры</a>
-            <a href="/create-actor.html" style="color: #4CAF50;">➕ Добавить актера</a>
-            <a href="/create-special.html" style="color: #b03d91;">🎭 Добавить специализацию</a>
-            <a href="/special-page.html" style="color: #b03d91;">📋 Все специализации</a>
+            <a href="/create-actor.html" class="requires-auth">➕ Добавить актера</a>
+            <a href="/create-special.html" class="requires-auth">🎭 Добавить специализацию</a>
+            <a href="/special-page.html">📋 Все специализации</a>
             <a href="/docs" target="_blank">📚 API Документация</a>
         </div>
         
         <div class="content">
             <h2>Добро пожаловать в систему управления актерами!</h2>
             <p>Здесь вы можете управлять базой данных актеров, их специализациями и наградами.</p>
+            
+            <div id="auth-status" style="margin: 20px 0; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <p id="status-message">Статус: Не авторизован</p>
+            </div>
             
             <div class="info">
                 <h3>📊 Быстрая статистика:</h3>
@@ -52,13 +54,13 @@
                 <button onclick="location.href='/actors-page.html'">
                     👥 Показать всех актеров
                 </button>
-                <button onclick="location.href='/create-actor.html'">
+                <button onclick="checkAuthBeforeAction('create-actor')" class="requires-auth">
                     ➕ Добавить нового актера
                 </button>
                 <button onclick="location.href='/special-page.html'">
                     📋 Показать все специализации
                 </button>
-                <button onclick="location.href='/create-special.html'">
+                <button onclick="checkAuthBeforeAction('create-special')" class="requires-auth">
                     🎭 Добавить новую специализацию
                 </button>
             </div>
@@ -67,13 +69,13 @@
                 <h3>🛠️ Доступные API эндпоинты:</h3>
                 <ul>
                     <li><code>GET /actors/</code> - Все актеры</li>
-                    <li><code>POST /actors/</code> - Создать актера</li>
+                    <li><code>POST /actors/</code> - Создать актера (требуется авторизация)</li>
                     <li><code>GET /actors/{id}</code> - Получить актера по ID</li>
-                    <li><code>PUT /actors/{id}</code> - Обновить актера</li>
-                    <li><code>DELETE /actors/{id}</code> - Удалить актера</li>
+                    <li><code>PUT /actors/{id}</code> - Обновить актера (требуется авторизация)</li>
+                    <li><code>DELETE /actors/{id}</code> - Удалить актера (требуется авторизация)</li>
                     <li><code>GET /specials/</code> - Все специализации</li>
-                    <li><code>POST /specials/</code> - Создать специализацию</li>
-                    <li><code>DELETE /specials/{id}</code> - Удалить специализацию</li>
+                    <li><code>POST /specials/</code> - Создать специализацию (требуется авторизация)</li>
+                    <li><code>DELETE /specials/{id}</code> - Удалить специализацию (требуется авторизация)</li>
                     <li><code>GET /actors/search/?name=...</code> - Поиск актеров</li>
                 </ul>
             </div>
@@ -86,6 +88,55 @@
     </div>
     
     <script>
+        // Проверка авторизации
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const authBtn = document.getElementById('auth-btn');
+            const statusMessage = document.getElementById('status-message');
+            
+            if (token) {
+                authBtn.innerHTML = '🚪 Выйти';
+                authBtn.onclick = logout;
+                statusMessage.innerHTML = 'Статус: <span style="color:#4CAF50">Авторизован</span>';
+                statusMessage.style.color = '#4CAF50';
+                
+                // Разблокируем кнопки
+                document.querySelectorAll('.requires-auth').forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                    el.style.opacity = '1';
+                });
+            } else {
+                authBtn.innerHTML = '🔐 Войти';
+                authBtn.onclick = function() {
+                    location.href = '/actors-page-autorize.html';
+                };
+                statusMessage.innerHTML = 'Статус: <span style="color:#f44336">Не авторизован</span>';
+                statusMessage.style.color = '#f44336';
+                
+                // Блокируем кнопки
+                document.querySelectorAll('.requires-auth').forEach(el => {
+                    el.style.pointerEvents = 'none';
+                    el.style.opacity = '0.5';
+                });
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Вы вышли из системы');
+            location.reload();
+        }
+        
+        function checkAuthBeforeAction(page) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Для этого действия необходимо войти в систему');
+                location.href = '/actors-page-autorize.html';
+            } else {
+                location.href = `/${page}.html`;
+            }
+        }
+        
         async function loadStats() {
             try {
                 const actorsResponse = await fetch('/actors/');
@@ -107,7 +158,10 @@
             }
         }
         
-        window.onload = loadStats;
+        window.onload = function() {
+            checkAuth();
+            loadStats();
+        };
     </script>
 </body>
 </html>
